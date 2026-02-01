@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: wros
+  datasource:
+    url: jdbc:postgresql://localhost:5432/waste_removal
+    username: postgres
+    password: postgres
+  flyway:
+    url: jdbc:postgresql://localhost:5432/waste_removal
+    user: postgres
+    password: postgres
