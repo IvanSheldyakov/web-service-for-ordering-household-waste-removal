@@ -78,40 +78,11 @@ create table if not exists info_card
     description varchar(256) not null
 );
 
-create table if not exists eco_task
-(
-    id           serial primary key,
-    user_type_id int          not null,
-    title        varchar(255) not null,
-    description  varchar(255) not null,
-    points       bigint       not null,
-    period       varchar(7)   not null check ( period in ('WEEKLY', 'MONTHLY') ),
-    constraint eco_task_user_type_id_fk foreign key (user_type_id) references user_type (id)
-
-);
-
-create table if not exists user_eco_task
-(
-    id           bigserial primary key,
-    user_id      bigint       not null,
-    eco_task_id  bigint       not null,
-    status       varchar(255) not null default 'ASSIGNED' check ( status in ('ASSIGNED', 'DONE', 'EXPIRED', 'CANCELED') ),
-    assigned_at  timestamptz  not null default now(),
-    completed_at timestamptz,
-    expired_at   timestamptz  not null,
-    constraint user_eco_task_user_id_fk foreign key (user_id) references user_info (id),
-    constraint user_eco_task_eco_task_id_fk foreign key (eco_task_id) references eco_task (id)
-);
-
-create unique index if not exists user_eco_task_one_active_idx
-    on user_eco_task (user_id, eco_task_id)
-    where status = 'ASSIGNED';
-
 create table if not exists user_action_history
 (
     id                bigserial   not null,
     user_id           bigint      not null,
-    event_type              varchar     not null, --TODO какие еще типы событий ?
+    event_type        varchar     not null, --TODO какие еще типы событий ?
     content           jsonb       not null,
     points_difference bigint      not null default 0,
     created_at        timestamptz not null default now(),
@@ -124,7 +95,8 @@ create table if not exists user_action_history
                        'LEADERBOARD_OPENED',
                        'ECO_PROFILE_OPENED',
                        'INFO_CARD_VIEWED',
-                       'ACHIEVEMENT_UNLOCKED'
+                       'ACHIEVEMENT_UNLOCKED',
+                       'ECO_TASK_COMPLETED'
             )
         )
 ) partition by range (created_at);
@@ -158,7 +130,7 @@ create table if not exists order_info
     completed_at timestamptz,
     assigned_at  timestamptz,
     type         varchar(8)  not null check ( type in ('MIXED', 'SEPARATE') ),
-    status       varchar(9)  not null check ( status in (('NEW', 'ASSIGNED', 'DONE', 'CANCELLED')) ),
+    status       varchar(9)  not null check ( status in ('NEW', 'ASSIGNED', 'DONE', 'CANCELLED') ),
     pickup_from  timestamptz not null,
     pickup_to    timestamptz not null,
     green_chosen boolean     not null default false,
@@ -180,6 +152,7 @@ create table if not exists order_info_2026_10 partition of order_info for values
 create table if not exists order_info_2026_11 partition of order_info for values from ('2026-11-01') to ('2026-12-01');
 create table if not exists order_info_2026_12 partition of order_info for values from ('2026-12-01') to ('2027-01-01');
 
+--------------------------- ФРАКЦИИ ---------------------------
 create table if not exists waste_fraction
 (
     id        bigserial primary key,
@@ -205,6 +178,7 @@ create table if not exists order_waste_fraction
     constraint order_waste_fraction_fraction_id_fk foreign key (fraction_id) references waste_fraction (id),
     primary key (order_id, order_created_at, fraction_id)
 );
+--------------------------- ФРАКЦИИ ---------------------------
 
 --------------------------- ДОСТИЖЕНИЯ ---------------------------
 create table if not exists achievement
@@ -222,8 +196,8 @@ create table if not exists achievement_user
 (
     achievement_id int    not null,
     user_id        bigint not null,
-    constraint achievement_user_achievement_id_fk foreign key (user_id) references user_info (id),
-    constraint achievement_user_user_id_fk foreign key (achievement_id) references achievement (id),
+    constraint achievement_user_user_id_fk foreign key (user_id) references user_info (id),
+    constraint achievement_user_achievement_id_fk foreign key (achievement_id) references achievement (id),
     primary key (achievement_id, user_id)
 );
 
@@ -298,4 +272,104 @@ on conflict (code) do nothing;
 
 --------------------------- ДОСТИЖЕНИЯ ---------------------------
 
+--------------------------- ЭКО-ЗАДАНИЯ --------------------------- TODO довести до ума (смотри чат)
+create table if not exists eco_task
+(
+    id            serial primary key,
+    code          varchar(64)  not null unique,
+    trigger_event varchar(64)  not null,
+    rule jsonb not null,
+    user_type_id  int          not null,
+    title         varchar(255) not null,
+    description   varchar(255) not null,
+    points        bigint       not null,
+    period        varchar(7)   not null check ( period in ('WEEKLY', 'MONTHLY') ),
+    is_active boolean not null default true,
+    constraint eco_task_user_type_id_fk foreign key (user_type_id) references user_type (id),
+    constraint eco_task_rule_chk check (
+        -- обязательные поля
+        rule ? 'type'
+            and rule ? 'target'
+            and jsonb_typeof(rule->'target') = 'number'
+            and (rule->>'type') in ('ORDER_COUNT', 'DISTINCT_FRACTIONS', 'ACTION_COUNT')
+            -- filters опциональны, но если есть — это объект
+            and (not (rule ? 'filters') or jsonb_typeof(rule->'filters') = 'object')
+        )
 
+);
+
+create table if not exists user_eco_task
+(
+    id           bigserial primary key,
+    user_id      bigint       not null,
+    eco_task_id  int          not null,
+    status       varchar(255) not null default 'ASSIGNED' check ( status in ('ASSIGNED', 'DONE', 'EXPIRED', 'CANCELED') ),
+    assigned_at  timestamptz  not null default now(),
+    completed_at timestamptz,
+    expired_at   timestamptz  not null,
+    constraint user_eco_task_user_id_fk foreign key (user_id) references user_info (id),
+    constraint user_eco_task_eco_task_id_fk foreign key (eco_task_id) references eco_task (id)
+);
+
+create unique index if not exists user_eco_task_one_active_idx
+    on user_eco_task (user_id, eco_task_id)
+    where status = 'ASSIGNED';
+
+insert into eco_task (code, user_type_id, title, description, points, period, trigger_event, rule)
+values
+-- 1) Achiever: 5 раздельных заказов за неделю
+('TASK_ACH_SEPARATE_5_WEEK',
+ (select id from user_type where name = 'ACHIEVER'),
+ '5 раздельных за неделю',
+ 'Выполни 5 заказов раздельного вывоза за неделю.',
+ 100,
+ 'WEEKLY',
+ 'ORDER_DONE',
+ '{
+   "type": "ORDER_COUNT",
+   "filters": { "order_type": "SEPARATE", "status": "DONE" },
+   "target": 5
+ }'::jsonb),
+
+-- 2) Socializer: 3 зелёных слота за неделю
+('TASK_SOC_GREEN_3_WEEK',
+ (select id from user_type where name = 'SOCIALIZER'),
+ '3 зелёных слота за неделю',
+ 'Выбери зелёный слот в 3 выполненных заказах за неделю.',
+ 50,
+ 'WEEKLY',
+ 'ORDER_DONE',
+ '{
+   "type": "ORDER_COUNT",
+   "filters": { "green_chosen": true, "status": "DONE" },
+   "target": 3
+ }'::jsonb),
+
+-- 3) Explorer: 3 разные фракции (логичнее как MONTHLY)
+('TASK_EXP_FRACTIONS_3_MONTH',
+ (select id from user_type where name = 'EXPLORER'),
+ 'Открой 3 фракции',
+ 'Используй 3 разные фракции в выполненных раздельных заказах за месяц.',
+ 50,
+ 'MONTHLY',
+ 'ORDER_DONE',
+ '{
+   "type": "DISTINCT_FRACTIONS",
+   "filters": { "order_type": "SEPARATE", "status": "DONE" },
+   "target": 3
+ }'::jsonb),
+
+-- 4) Explorer: открыть эко-профиль (ACTION_COUNT)
+('TASK_EXP_OPEN_PROFILE_WEEK',
+ (select id from user_type where name = 'EXPLORER'),
+ 'Загляни в эко-профиль',
+ 'Открой страницу эко-профиля хотя бы один раз за неделю.',
+ 30,
+ 'WEEKLY',
+ 'ECO_PROFILE_OPENED',
+ '{
+   "type": "ACTION_COUNT",
+   "target": 1
+ }'::jsonb)
+on conflict (code) do nothing;
+--------------------------- ЭКО-ЗАДАНИЯ ---------------------------
