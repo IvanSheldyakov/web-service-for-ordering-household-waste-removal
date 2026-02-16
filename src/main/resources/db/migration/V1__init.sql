@@ -11,8 +11,7 @@ create table if not exists user_info
     person_id      bigint unique not null,
     constraint user_info_type_id_fk foreign key (type_id) references user_type (id),
     constraint user_info_address_id_fk foreign key (address_id) references address (id),
-    constraint user_info_person_id_fk foreign key (person_id) references person_info (id),
-
+    constraint user_info_person_id_fk foreign key (person_id) references person_info (id)
 );
 
 create table if not exists user_type
@@ -29,8 +28,8 @@ on conflict (name) do nothing;
 
 create table if not exists achiever_profile
 (
-    user_id    bigint primary key,
-    level_id   int not null,
+    user_id  bigint primary key,
+    level_id int not null,
     constraint achiever_profile_user_id_fk
         foreign key (user_id) references user_info (id) on delete cascade,
     constraint achiever_profile_level_id_fk
@@ -60,7 +59,7 @@ create table if not exists address
 
 create table if not exists level
 (
-    id   serial primary key,
+    id                    serial primary key,
     required_total_points int not null unique check ( required_total_points > 0 )
 );
 
@@ -72,24 +71,6 @@ values (1000),
        (5000)
 on conflict do nothing;
 
-create table if not exists achievement
-(
-    id           serial primary key,
-    title        varchar(128) not null,
-    description  varchar(256) not null,
-    user_type_id int       not null,
-    constraint achievement_user_type_id_fk foreign key (user_type_id) references user_type (id)
-);
-
-create table if not exists achievement_user
-(
-    achievement_id int    not null,
-    user_id        bigint not null,
-    constraint achievement_user_achievement_id_fk foreign key (user_id) references user_info (id),
-    constraint achievement_user_user_id_fk foreign key (achievement_id) references achievement (id),
-    primary key (achievement_id, user_id)
-);
-
 create table if not exists info_card
 (
     id          serial primary key,
@@ -100,7 +81,7 @@ create table if not exists info_card
 create table if not exists eco_task
 (
     id           serial primary key,
-    user_type_id int       not null,
+    user_type_id int          not null,
     title        varchar(255) not null,
     description  varchar(255) not null,
     points       bigint       not null,
@@ -128,14 +109,24 @@ create unique index if not exists user_eco_task_one_active_idx
 
 create table if not exists user_action_history
 (
-    id                bigserial not null,
+    id                bigserial   not null,
     user_id           bigint      not null,
-    type              varchar     not null, --TODO какие типы событий ?
+    event_type              varchar     not null, --TODO какие еще типы событий ?
     content           jsonb       not null,
     points_difference bigint      not null default 0,
     created_at        timestamptz not null default now(),
     constraint user_action_history_user_id_fk foreign key (user_id) references user_info (id),
-    constraint user_action_history_pk primary key (id, created_at)
+    constraint user_action_history_pk primary key (id, created_at),
+    constraint user_action_history_event_type_chk check (
+        event_type in (
+                       'ORDER_DONE',
+                       'LEVEL_UP',
+                       'LEADERBOARD_OPENED',
+                       'ECO_PROFILE_OPENED',
+                       'INFO_CARD_VIEWED',
+                       'ACHIEVEMENT_UNLOCKED'
+            )
+        )
 ) partition by range (created_at);
 
 create table if not exists user_action_history_2026_02 partition of user_action_history for values from ('2026-02-01') to ('2026-03-01');
@@ -160,7 +151,7 @@ create table if not exists courier
 
 create table if not exists order_info
 (
-    id           bigserial not null,
+    id           bigserial   not null,
     user_id      bigint      not null,
     courier_id   bigint,
     created_at   timestamptz not null default now(),
@@ -214,5 +205,97 @@ create table if not exists order_waste_fraction
     constraint order_waste_fraction_fraction_id_fk foreign key (fraction_id) references waste_fraction (id),
     primary key (order_id, order_created_at, fraction_id)
 );
+
+--------------------------- ДОСТИЖЕНИЯ ---------------------------
+create table if not exists achievement
+(
+    id            serial primary key,
+    code          varchar(64)  not null unique,
+    title         varchar(128) not null,
+    description   varchar(256) not null,
+    trigger_event varchar(64)  not null,
+    user_type_id  int          not null,
+    constraint achievement_user_type_id_fk foreign key (user_type_id) references user_type (id)
+);
+
+create table if not exists achievement_user
+(
+    achievement_id int    not null,
+    user_id        bigint not null,
+    constraint achievement_user_achievement_id_fk foreign key (user_id) references user_info (id),
+    constraint achievement_user_user_id_fk foreign key (achievement_id) references achievement (id),
+    primary key (achievement_id, user_id)
+);
+
+insert into achievement (code, title, description, trigger_event, user_type_id)
+values
+-- ACHIEVER (прогресс/статус)
+('ACH_FIRST_ORDER',
+ 'Первый вывоз',
+ 'Выполнить хотя бы один заказ на вывоз отходов.',
+ 'ORDER_DONE',
+ (select id from user_type where name = 'ACHIEVER')),
+('ACH_FIRST_SEPARATE',
+ 'Первый раздельный',
+ 'Выполнить хотя бы один заказ раздельного вывоза.',
+ 'ORDER_DONE',
+ (select id from user_type where name = 'ACHIEVER')),
+('ACH_SEPARATE_5',
+ '5 раздельных',
+ 'Выполнить пять заказов раздельного вывоза.',
+ 'ORDER_DONE',
+ (select id from user_type where name = 'ACHIEVER')),
+('ACH_LEVEL_UP',
+ 'Новый уровень',
+ 'Достичь нового уровня Achiever (например, уровень >= 2).',
+ 'LEVEL_UP',
+ (select id from user_type where name = 'ACHIEVER')),
+
+-- SOCIALIZER (соревнование/район)
+('SOC_OPEN_LEADERBOARD',
+ 'Заглянул в рейтинг',
+ 'Открыть страницу рейтинга хотя бы один раз.',
+ 'LEADERBOARD_OPENED',
+ (select id from user_type where name = 'SOCIALIZER')),
+('SOC_TOP10_WEEK',
+ 'Топ-10 района за неделю',
+ 'Попасть в топ-10 пользователей района по сумме баллов за последние 7 дней.',
+ 'LEADERBOARD_OPENED',
+ (select id from user_type where name = 'SOCIALIZER')),
+('SOC_TOP3_WEEK',
+ 'Топ-3 района за неделю',
+ 'Попасть в топ-3 пользователей района по сумме баллов за последние 7 дней.',
+ 'LEADERBOARD_OPENED',
+ (select id from user_type where name = 'SOCIALIZER')),
+('SOC_GREEN_HELPER_5',
+ 'Помогаю району',
+ 'Выбрать зелёные слоты не менее 5 раз в выполненных заказах.',
+ 'ORDER_DONE',
+ (select id from user_type where name = 'SOCIALIZER')),
+
+-- EXPLORER (познание/новизна)
+('EXP_OPEN_PROFILE',
+ 'Открыл эко-профиль',
+ 'Открыть страницу эко-профиля хотя бы один раз.',
+ 'ECO_PROFILE_OPENED',
+ (select id from user_type where name = 'EXPLORER')),
+('EXP_CARDS_5',
+ 'Эко-читатель: 5 карточек',
+ 'Просмотреть 5 информационных карточек.',
+ 'INFO_CARD_VIEWED',
+ (select id from user_type where name = 'EXPLORER')),
+('EXP_NEW_FRACTIONS_3',
+ 'Открыл 3 фракции',
+ 'Использовать 3 разные фракции в выполненных раздельных заказах.',
+ 'ORDER_DONE',
+ (select id from user_type where name = 'EXPLORER')),
+('EXP_NEW_FRACTIONS_ALL_5',
+ 'Пробовал всё: 5 фракций',
+ 'Использовать 5 разных фракций в выполненных раздельных заказах.',
+ 'ORDER_DONE',
+ (select id from user_type where name = 'EXPLORER'))
+on conflict (code) do nothing;
+
+--------------------------- ДОСТИЖЕНИЯ ---------------------------
 
 
