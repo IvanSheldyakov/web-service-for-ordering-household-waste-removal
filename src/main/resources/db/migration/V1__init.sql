@@ -1,20 +1,4 @@
-create table if not exists user_info
-(
-    id             bigserial primary key,
-    total_points   bigint        not null default 0,
-    current_points bigint        not null default 0,
-    habit_strength bigint        not null default 0,
-    created_at     timestamptz   not null default now(),
-    updated_at     timestamptz   not null default now(),
-    type_id        int           not null,
-    address_id     bigint        not null,
-    person_id      bigint unique not null,
-    constraint user_info_type_id_fk foreign key (type_id) references user_type (id),
-    constraint user_info_address_id_fk foreign key (address_id) references address (id),
-    constraint user_info_person_id_fk foreign key (person_id) references person_info (id)
-);
-
-create table if not exists user_type
+﻿create table if not exists user_type
 (
     id   serial primary key,
     name varchar(10) unique not null check ( name in ('ACHIEVER', 'SOCIALIZER', 'EXPLORER') )
@@ -25,16 +9,6 @@ values ('ACHIEVER'),
        ('SOCIALIZER'),
        ('EXPLORER')
 on conflict (name) do nothing;
-
-create table if not exists achiever_profile
-(
-    user_id  bigint primary key,
-    level_id int not null,
-    constraint achiever_profile_user_id_fk
-        foreign key (user_id) references user_info (id) on delete cascade,
-    constraint achiever_profile_level_id_fk
-        foreign key (level_id) references level (id)
-);
 
 create table if not exists person_info
 (
@@ -78,41 +52,31 @@ create table if not exists info_card
     description varchar(256) not null
 );
 
-create table if not exists user_action_history
+create table if not exists user_info
 (
-    id                bigserial   not null,
-    user_id           bigint      not null,
-    event_type        varchar     not null, --TODO какие еще типы событий ?
-    content           jsonb       not null,
-    points_difference bigint      not null default 0,
-    created_at        timestamptz not null default now(),
-    constraint user_action_history_user_id_fk foreign key (user_id) references user_info (id),
-    constraint user_action_history_pk primary key (id, created_at),
-    constraint user_action_history_event_type_chk check (
-        event_type in (
-                       'ORDER_DONE',
-                       'LEVEL_UP',
-                       'LEADERBOARD_OPENED',
-                       'ECO_PROFILE_OPENED',
-                       'INFO_CARD_VIEWED',
-                       'ACHIEVEMENT_UNLOCKED',
-                       'ECO_TASK_COMPLETED'
-            )
-        )
-) partition by range (created_at);
+    id             bigserial primary key,
+    total_points   bigint        not null default 0,
+    current_points bigint        not null default 0,
+    habit_strength bigint        not null default 0,
+    created_at     timestamptz   not null default now(),
+    updated_at     timestamptz   not null default now(),
+    type_id        int           not null,
+    address_id     bigint        not null,
+    person_id      bigint unique not null,
+    constraint user_info_type_id_fk foreign key (type_id) references user_type (id),
+    constraint user_info_address_id_fk foreign key (address_id) references address (id),
+    constraint user_info_person_id_fk foreign key (person_id) references person_info (id)
+);
 
-create table if not exists user_action_history_2026_02 partition of user_action_history for values from ('2026-02-01') to ('2026-03-01');
-create table if not exists user_action_history_2026_03 partition of user_action_history for values from ('2026-03-01') to ('2026-04-01');
-create table if not exists user_action_history_2026_04 partition of user_action_history for values from ('2026-04-01') to ('2026-05-01');
-create table if not exists user_action_history_2026_05 partition of user_action_history for values from ('2026-05-01') to ('2026-06-01');
-create table if not exists user_action_history_2026_06 partition of user_action_history for values from ('2026-06-01') to ('2026-07-01');
-create table if not exists user_action_history_2026_07 partition of user_action_history for values from ('2026-07-01') to ('2026-08-01');
-create table if not exists user_action_history_2026_08 partition of user_action_history for values from ('2026-08-01') to ('2026-09-01');
-create table if not exists user_action_history_2026_09 partition of user_action_history for values from ('2026-09-01') to ('2026-10-01');
-create table if not exists user_action_history_2026_10 partition of user_action_history for values from ('2026-10-01') to ('2026-11-01');
-create table if not exists user_action_history_2026_11 partition of user_action_history for values from ('2026-11-01') to ('2026-12-01');
-create table if not exists user_action_history_2026_12 partition of user_action_history for values from ('2026-12-01') to ('2027-01-01');
-
+create table if not exists achiever_profile
+(
+    user_id  bigint primary key,
+    level_id int not null,
+    constraint achiever_profile_user_id_fk
+        foreign key (user_id) references user_info (id) on delete cascade,
+    constraint achiever_profile_level_id_fk
+        foreign key (level_id) references level (id)
+);
 
 create table if not exists courier
 (
@@ -179,6 +143,44 @@ create table if not exists order_waste_fraction
     primary key (order_id, order_created_at, fraction_id)
 );
 --------------------------- ФРАКЦИИ ---------------------------
+
+--------------------------- СОБЫТИЯ ---------------------------
+
+create table if not exists user_action_history
+(
+    id                bigserial   not null,
+    user_id           bigint      not null,
+    event_type        varchar     not null, --TODO какие еще типы событий ?
+    content           jsonb       not null,
+    points_difference bigint      not null default 0,
+    created_at        timestamptz not null default now(),
+    constraint user_action_history_user_id_fk foreign key (user_id) references user_info (id),
+    constraint user_action_history_pk primary key (id, created_at),
+    constraint user_action_history_event_type_chk check (
+        event_type in (
+                       'ORDER_DONE',
+                       'LEVEL_UP',
+                       'LEADERBOARD_OPENED',
+                       'ECO_PROFILE_OPENED',
+                       'INFO_CARD_VIEWED',
+                       'ACHIEVEMENT_UNLOCKED',
+                       'ECO_TASK_COMPLETED'
+            )
+        )
+) partition by range (created_at);
+
+create table if not exists user_action_history_2026_02 partition of user_action_history for values from ('2026-02-01') to ('2026-03-01');
+create table if not exists user_action_history_2026_03 partition of user_action_history for values from ('2026-03-01') to ('2026-04-01');
+create table if not exists user_action_history_2026_04 partition of user_action_history for values from ('2026-04-01') to ('2026-05-01');
+create table if not exists user_action_history_2026_05 partition of user_action_history for values from ('2026-05-01') to ('2026-06-01');
+create table if not exists user_action_history_2026_06 partition of user_action_history for values from ('2026-06-01') to ('2026-07-01');
+create table if not exists user_action_history_2026_07 partition of user_action_history for values from ('2026-07-01') to ('2026-08-01');
+create table if not exists user_action_history_2026_08 partition of user_action_history for values from ('2026-08-01') to ('2026-09-01');
+create table if not exists user_action_history_2026_09 partition of user_action_history for values from ('2026-09-01') to ('2026-10-01');
+create table if not exists user_action_history_2026_10 partition of user_action_history for values from ('2026-10-01') to ('2026-11-01');
+create table if not exists user_action_history_2026_11 partition of user_action_history for values from ('2026-11-01') to ('2026-12-01');
+create table if not exists user_action_history_2026_12 partition of user_action_history for values from ('2026-12-01') to ('2027-01-01');
+--------------------------- СОБЫТИЯ ---------------------------
 
 --------------------------- ДОСТИЖЕНИЯ ---------------------------
 create table if not exists achievement
@@ -303,7 +305,7 @@ create table if not exists user_eco_task
     id           bigserial primary key,
     user_id      bigint       not null,
     eco_task_id  int          not null,
-    status       varchar(255) not null default 'ASSIGNED' check ( status in ('ASSIGNED', 'DONE', 'EXPIRED', 'CANCELED') ),
+    status       varchar(255) not null default 'ASSIGNED' check ( status in ('ASSIGNED', 'DONE', 'EXPIRED', 'CANCELLED') ),
     assigned_at  timestamptz  not null default now(),
     completed_at timestamptz,
     expired_at   timestamptz  not null,
