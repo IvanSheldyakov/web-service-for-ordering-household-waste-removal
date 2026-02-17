@@ -329,7 +329,7 @@ values
  'ORDER_DONE',
  '{
    "type": "ORDER_COUNT",
-   "filters": { "order_type": "SEPARATE", "status": "DONE" },
+   "filters": { "type": "SEPARATE", "status": "DONE" },
    "target": 5
  }'::jsonb),
 
@@ -357,7 +357,7 @@ values
  'ORDER_DONE',
  '{
    "type": "DISTINCT_FRACTIONS",
-   "filters": { "order_type": "SEPARATE", "status": "DONE" },
+   "filters": { "type": "SEPARATE", "status": "DONE" },
    "target": 3
  }'::jsonb),
 
