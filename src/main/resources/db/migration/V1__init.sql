@@ -150,7 +150,7 @@ create table if not exists user_action_history
 (
     id                bigserial   not null,
     user_id           bigint      not null,
-    event_type        varchar     not null, --TODO какие еще типы событий ?
+    event_type        varchar     not null,
     content           jsonb       not null,
     points_difference bigint      not null default 0,
     created_at        timestamptz not null default now(),
@@ -159,6 +159,9 @@ create table if not exists user_action_history
     constraint user_action_history_event_type_chk check (
         event_type in (
                        'ORDER_DONE',
+                       'ORDER_CREATED',
+                       'SEPARATE_CHOSEN',
+                       'GREEN_SLOT_CHOSEN',
                        'LEVEL_UP',
                        'LEADERBOARD_OPENED',
                        'ECO_PROFILE_OPENED',
@@ -274,28 +277,28 @@ on conflict (code) do nothing;
 
 --------------------------- ДОСТИЖЕНИЯ ---------------------------
 
---------------------------- ЭКО-ЗАДАНИЯ --------------------------- TODO довести до ума (смотри чат)
+--------------------------- ЭКО-ЗАДАНИЯ ---------------------------
 create table if not exists eco_task
 (
     id            serial primary key,
     code          varchar(64)  not null unique,
     trigger_event varchar(64)  not null,
-    rule jsonb not null,
+    rule          jsonb        not null,
     user_type_id  int          not null,
     title         varchar(255) not null,
     description   varchar(255) not null,
     points        bigint       not null,
     period        varchar(7)   not null check ( period in ('WEEKLY', 'MONTHLY') ),
-    is_active boolean not null default true,
+    is_active     boolean      not null default true,
     constraint eco_task_user_type_id_fk foreign key (user_type_id) references user_type (id),
     constraint eco_task_rule_chk check (
         -- обязательные поля
         rule ? 'type'
             and rule ? 'target'
-            and jsonb_typeof(rule->'target') = 'number'
-            and (rule->>'type') in ('ORDER_COUNT', 'DISTINCT_FRACTIONS', 'ACTION_COUNT')
+            and jsonb_typeof(rule -> 'target') = 'number'
+            and (rule ->> 'type') in ('ORDER_COUNT', 'DISTINCT_FRACTIONS', 'ACTION_COUNT')
             -- filters опциональны, но если есть — это объект
-            and (not (rule ? 'filters') or jsonb_typeof(rule->'filters') = 'object')
+            and (not (rule ? 'filters') or jsonb_typeof(rule -> 'filters') = 'object')
         )
 
 );
@@ -329,7 +332,10 @@ values
  'ORDER_DONE',
  '{
    "type": "ORDER_COUNT",
-   "filters": { "type": "SEPARATE", "status": "DONE" },
+   "filters": {
+     "type": "SEPARATE",
+     "status": "DONE"
+   },
    "target": 5
  }'::jsonb),
 
@@ -343,7 +349,10 @@ values
  'ORDER_DONE',
  '{
    "type": "ORDER_COUNT",
-   "filters": { "green_chosen": true, "status": "DONE" },
+   "filters": {
+     "green_chosen": true,
+     "status": "DONE"
+   },
    "target": 3
  }'::jsonb),
 
@@ -357,7 +366,10 @@ values
  'ORDER_DONE',
  '{
    "type": "DISTINCT_FRACTIONS",
-   "filters": { "type": "SEPARATE", "status": "DONE" },
+   "filters": {
+     "type": "SEPARATE",
+     "status": "DONE"
+   },
    "target": 3
  }'::jsonb),
 
