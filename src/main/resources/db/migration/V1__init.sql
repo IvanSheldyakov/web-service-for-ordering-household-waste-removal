@@ -45,18 +45,11 @@ values (1000),
        (5000)
 on conflict do nothing;
 
-create table if not exists info_card
-(
-    id          serial primary key,
-    title       varchar(128) not null,
-    description varchar(256) not null
-);
-
 create table if not exists user_info
 (
     id             bigserial primary key,
-    total_points   bigint        not null default 0,
-    current_points bigint        not null default 0,
+    total_points   bigint        not null default 0 (total_points >= 0),
+    current_points bigint        not null default 0 check (current_points >= 0),
     habit_strength bigint        not null default 0,
     created_at     timestamptz   not null default now(),
     updated_at     timestamptz   not null default now(),
@@ -80,8 +73,9 @@ create table if not exists achiever_profile
 
 create table if not exists courier
 (
-    id        bigserial primary key,
-    person_id bigint not null unique,
+    id           bigserial primary key,
+    person_id    bigint not null unique,
+    total_points bigint not null default 0 (total_points >= 0),
     constraint courier_person_id_fk foreign key (person_id) references person_info (id)
 );
 
@@ -99,6 +93,7 @@ create table if not exists order_info
     pickup_to    timestamptz not null,
     green_chosen boolean     not null default false,
     postal_code  varchar(16) not null,
+    cost_points  bigint      not null check (cost_points > 0),
     constraint order_info_user_id_fk foreign key (user_id) references user_info (id),
     constraint order_info_courier_id_fk foreign key (courier_id) references courier (id),
     constraint order_info_pk primary key (id, created_at)
@@ -115,6 +110,39 @@ create table if not exists order_info_2026_09 partition of order_info for values
 create table if not exists order_info_2026_10 partition of order_info for values from ('2026-10-01') to ('2026-11-01');
 create table if not exists order_info_2026_11 partition of order_info for values from ('2026-11-01') to ('2026-12-01');
 create table if not exists order_info_2026_12 partition of order_info for values from ('2026-12-01') to ('2027-01-01');
+
+--------------------------- ИНФО КАРТОЧКИ ---------------------------
+
+create table if not exists info_card
+(
+    id          serial primary key,
+    title       varchar(128) not null,
+    description varchar(256) not null
+);
+
+insert into info_card (title, description)
+values ('Сортировка с нуля',
+        'Начни с 2 фракций: бумага и пластик. Когда это станет привычкой — добавь стекло/металл. Маленькие шаги дают стабильный результат.'),
+       ('Пластик: чистый и сухой',
+        'Большинство пунктов приёма просит пластик без остатков еды и жидкости. Ополосни и высуши — так повышается шанс, что его реально переработают.'),
+       ('Пластик: смотри маркировку',
+        'Маркировка на упаковке помогает понять, как её обычно принимают. Если сомневаешься — лучше смешанный вывоз, чем “заразить” партию вторсырья.'),
+       ('Бумага не любит жир',
+        'Салфетки, коробки из-под пиццы и бумага с жиром чаще всего не подходят для переработки. Чистая сухая бумага — самый “надёжный” вклад.'),
+       ('Стекло: крышки отдельно',
+        'Стеклянную тару обычно принимают отдельно от крышек и дозаторов. Сними крышку — и сортировка станет точнее.'),
+       ('Почему стекло ценное',
+        'Стекло можно перерабатывать многократно без существенной потери качества. Поэтому чистая стеклотара — одна из самых понятных фракций.'),
+       ('Металл: сплющи упаковку',
+        'Сминай банки и бутылки перед сдачей: так помещается больше, а вывоз и хранение становятся эффективнее.'),
+       ('Опасные отходы — отдельно',
+        'Батарейки, лампы и электроника не должны попадать в общий пакет: там могут быть токсичные компоненты. Лучше сдавать их в спецпункты.'),
+       ('Зелёный слот — это про логистику',
+        'Если выбрать “зелёный” слот, заказы в районе легче объединить в один маршрут. Меньше поездок — меньше топлива и выбросов.'),
+       ('Привычка держится на повторениях',
+        'Экопривычки формируются не силой воли, а рутиной. Упростишь шаги — увеличишь регулярность.')
+on conflict do nothing;
+--------------------------- ИНФО КАРТОЧКИ ---------------------------
 
 --------------------------- ФРАКЦИИ ---------------------------
 create table if not exists waste_fraction
