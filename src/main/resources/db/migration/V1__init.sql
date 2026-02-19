@@ -235,72 +235,68 @@ create table if not exists achievement_user
 );
 
 insert into achievement (code, title, description, trigger_event, user_type_id)
-values
--- ACHIEVER (прогресс/статус)
-('ACH_FIRST_ORDER',
- 'Первый вывоз',
- 'Выполнить хотя бы один заказ на вывоз отходов.',
- 'ORDER_DONE',
- (select id from user_type where name = 'ACHIEVER')),
-('ACH_FIRST_SEPARATE',
- 'Первый раздельный',
- 'Выполнить хотя бы один заказ раздельного вывоза.',
- 'ORDER_DONE',
- (select id from user_type where name = 'ACHIEVER')),
-('ACH_SEPARATE_5',
- '5 раздельных',
- 'Выполнить пять заказов раздельного вывоза.',
- 'ORDER_DONE',
- (select id from user_type where name = 'ACHIEVER')),
-('ACH_LEVEL_UP',
- 'Новый уровень',
- 'Достичь нового уровня Achiever (например, уровень >= 2).',
- 'LEVEL_UP',
- (select id from user_type where name = 'ACHIEVER')),
+values ('ACH_FIRST_ORDER',
+        'Первый вывоз',
+        'Выполнить хотя бы один заказ на вывоз отходов.',
+        'ORDER_DONE',
+        (select id from user_type where name = 'ACHIEVER')),
+       ('ACH_FIRST_SEPARATE',
+        'Первый раздельный',
+        'Выполнить хотя бы один заказ раздельного вывоза.',
+        'ORDER_DONE',
+        (select id from user_type where name = 'ACHIEVER')),
+       ('ACH_SEPARATE_5',
+        '5 раздельных',
+        'Выполнить пять заказов раздельного вывоза.',
+        'ORDER_DONE',
+        (select id from user_type where name = 'ACHIEVER')),
+       ('ACH_LEVEL_UP',
+        'Новый уровень',
+        'Достичь нового уровня Achiever (например, уровень >= 2).',
+        'LEVEL_UP',
+        (select id from user_type where name = 'ACHIEVER')),
 
--- SOCIALIZER (соревнование/район)
-('SOC_OPEN_LEADERBOARD',
- 'Заглянул в рейтинг',
- 'Открыть страницу рейтинга хотя бы один раз.',
- 'LEADERBOARD_OPENED',
- (select id from user_type where name = 'SOCIALIZER')),
-('SOC_TOP10_WEEK',
- 'Топ-10 района за неделю',
- 'Попасть в топ-10 пользователей района по сумме баллов за последние 7 дней.',
- 'LEADERBOARD_OPENED',
- (select id from user_type where name = 'SOCIALIZER')),
-('SOC_TOP3_WEEK',
- 'Топ-3 района за неделю',
- 'Попасть в топ-3 пользователей района по сумме баллов за последние 7 дней.',
- 'LEADERBOARD_OPENED',
- (select id from user_type where name = 'SOCIALIZER')),
-('SOC_GREEN_HELPER_5',
- 'Помогаю району',
- 'Выбрать зелёные слоты не менее 5 раз в выполненных заказах.',
- 'ORDER_DONE',
- (select id from user_type where name = 'SOCIALIZER')),
+       ('SOC_OPEN_LEADERBOARD',
+        'Заглянул в рейтинг',
+        'Открыть страницу рейтинга хотя бы один раз.',
+        'LEADERBOARD_OPENED',
+        (select id from user_type where name = 'SOCIALIZER')),
+       ('SOC_TOP10_WEEK',
+        'Топ-10 района за неделю',
+        'Попасть в топ-10 пользователей района по сумме баллов за последние 7 дней.',
+        'LEADERBOARD_OPENED',
+        (select id from user_type where name = 'SOCIALIZER')),
+       ('SOC_TOP3_WEEK',
+        'Топ-3 района за неделю',
+        'Попасть в топ-3 пользователей района по сумме баллов за последние 7 дней.',
+        'LEADERBOARD_OPENED',
+        (select id from user_type where name = 'SOCIALIZER')),
+       ('SOC_GREEN_HELPER_5',
+        'Помогаю району',
+        'Выбрать зелёные слоты не менее 5 раз в выполненных заказах.',
+        'ORDER_DONE',
+        (select id from user_type where name = 'SOCIALIZER')),
 
--- EXPLORER (познание/новизна)
-('EXP_OPEN_PROFILE',
- 'Открыл эко-профиль',
- 'Открыть страницу эко-профиля хотя бы один раз.',
- 'ECO_PROFILE_OPENED',
- (select id from user_type where name = 'EXPLORER')),
-('EXP_CARDS_5',
- 'Эко-читатель: 5 карточек',
- 'Просмотреть 5 информационных карточек.',
- 'INFO_CARD_VIEWED',
- (select id from user_type where name = 'EXPLORER')),
-('EXP_NEW_FRACTIONS_3',
- 'Открыл 3 фракции',
- 'Использовать 3 разные фракции в выполненных раздельных заказах.',
- 'ORDER_DONE',
- (select id from user_type where name = 'EXPLORER')),
-('EXP_NEW_FRACTIONS_ALL_5',
- 'Пробовал всё: 5 фракций',
- 'Использовать 5 разных фракций в выполненных раздельных заказах.',
- 'ORDER_DONE',
- (select id from user_type where name = 'EXPLORER'))
+       ('EXP_OPEN_PROFILE',
+        'Открыл эко-профиль',
+        'Открыть страницу эко-профиля хотя бы один раз.',
+        'ECO_PROFILE_OPENED',
+        (select id from user_type where name = 'EXPLORER')),
+       ('EXP_CARDS_5',
+        'Эко-читатель: 5 карточек',
+        'Просмотреть 5 информационных карточек.',
+        'INFO_CARD_VIEWED',
+        (select id from user_type where name = 'EXPLORER')),
+       ('EXP_NEW_FRACTIONS_3',
+        'Открыл 3 фракции',
+        'Использовать 3 разные фракции в выполненных раздельных заказах.',
+        'ORDER_DONE',
+        (select id from user_type where name = 'EXPLORER')),
+       ('EXP_NEW_FRACTIONS_ALL_5',
+        'Пробовал всё: 5 фракций',
+        'Использовать 5 разных фракций в выполненных раздельных заказах.',
+        'ORDER_DONE',
+        (select id from user_type where name = 'EXPLORER'))
 on conflict (code) do nothing;
 
 --------------------------- ДОСТИЖЕНИЯ ---------------------------
@@ -320,12 +316,10 @@ create table if not exists eco_task
     is_active     boolean      not null default true,
     constraint eco_task_user_type_id_fk foreign key (user_type_id) references user_type (id),
     constraint eco_task_rule_chk check (
-        -- обязательные поля
         rule ? 'type'
             and rule ? 'target'
             and jsonb_typeof(rule -> 'target') = 'number'
             and (rule ->> 'type') in ('ORDER_COUNT', 'DISTINCT_FRACTIONS', 'ACTION_COUNT')
-            -- filters опциональны, но если есть — это объект
             and (not (rule ? 'filters') or jsonb_typeof(rule -> 'filters') = 'object')
         )
 
@@ -349,70 +343,65 @@ create unique index if not exists user_eco_task_one_active_idx
     where status = 'ASSIGNED';
 
 insert into eco_task (code, user_type_id, title, description, points, period, trigger_event, rule)
-values
--- 1) Achiever: 5 раздельных заказов за неделю
-('TASK_ACH_SEPARATE_5_WEEK',
- (select id from user_type where name = 'ACHIEVER'),
- '5 раздельных за неделю',
- 'Выполни 5 заказов раздельного вывоза за неделю.',
- 100,
- 'WEEKLY',
- 'ORDER_DONE',
- '{
-   "type": "ORDER_COUNT",
-   "filters": {
-     "type": "SEPARATE",
-     "status": "DONE"
-   },
-   "target": 5
- }'::jsonb),
+values ('TASK_ACH_SEPARATE_5_WEEK',
+        (select id from user_type where name = 'ACHIEVER'),
+        '5 раздельных за неделю',
+        'Выполни 5 заказов раздельного вывоза за неделю.',
+        100,
+        'WEEKLY',
+        'ORDER_DONE',
+        '{
+          "type": "ORDER_COUNT",
+          "filters": {
+            "type": "SEPARATE",
+            "status": "DONE"
+          },
+          "target": 5
+        }'::jsonb),
 
--- 2) Socializer: 3 зелёных слота за неделю
-('TASK_SOC_GREEN_3_WEEK',
- (select id from user_type where name = 'SOCIALIZER'),
- '3 зелёных слота за неделю',
- 'Выбери зелёный слот в 3 выполненных заказах за неделю.',
- 50,
- 'WEEKLY',
- 'ORDER_DONE',
- '{
-   "type": "ORDER_COUNT",
-   "filters": {
-     "green_chosen": true,
-     "status": "DONE"
-   },
-   "target": 3
- }'::jsonb),
+       ('TASK_SOC_GREEN_3_WEEK',
+        (select id from user_type where name = 'SOCIALIZER'),
+        '3 зелёных слота за неделю',
+        'Выбери зелёный слот в 3 выполненных заказах за неделю.',
+        50,
+        'WEEKLY',
+        'ORDER_DONE',
+        '{
+          "type": "ORDER_COUNT",
+          "filters": {
+            "green_chosen": true,
+            "status": "DONE"
+          },
+          "target": 3
+        }'::jsonb),
 
--- 3) Explorer: 3 разные фракции (логичнее как MONTHLY)
-('TASK_EXP_FRACTIONS_3_MONTH',
- (select id from user_type where name = 'EXPLORER'),
- 'Открой 3 фракции',
- 'Используй 3 разные фракции в выполненных раздельных заказах за месяц.',
- 50,
- 'MONTHLY',
- 'ORDER_DONE',
- '{
-   "type": "DISTINCT_FRACTIONS",
-   "filters": {
-     "type": "SEPARATE",
-     "status": "DONE"
-   },
-   "target": 3
- }'::jsonb),
+       ('TASK_EXP_FRACTIONS_3_MONTH',
+        (select id from user_type where name = 'EXPLORER'),
+        'Открой 3 фракции',
+        'Используй 3 разные фракции в выполненных раздельных заказах за месяц.',
+        50,
+        'MONTHLY',
+        'ORDER_DONE',
+        '{
+          "type": "DISTINCT_FRACTIONS",
+          "filters": {
+            "type": "SEPARATE",
+            "status": "DONE"
+          },
+          "target": 3
+        }'::jsonb),
 
--- 4) Explorer: открыть эко-профиль (ACTION_COUNT)
-('TASK_EXP_OPEN_PROFILE_WEEK',
- (select id from user_type where name = 'EXPLORER'),
- 'Загляни в эко-профиль',
- 'Открой страницу эко-профиля хотя бы один раз за неделю.',
- 30,
- 'WEEKLY',
- 'ECO_PROFILE_OPENED',
- '{
-   "type": "ACTION_COUNT",
-   "target": 1
- }'::jsonb)
+       ('TASK_EXP_OPEN_PROFILE_WEEK',
+        (select id from user_type where name = 'EXPLORER'),
+        'Загляни в эко-профиль',
+        'Открой страницу эко-профиля хотя бы один раз за неделю.',
+        30,
+        'WEEKLY',
+        'ECO_PROFILE_OPENED',
+        '{
+          "type": "ACTION_COUNT",
+          "target": 1
+        }'::jsonb)
 on conflict (code) do nothing;
 --------------------------- ЭКО-ЗАДАНИЯ ---------------------------
 
