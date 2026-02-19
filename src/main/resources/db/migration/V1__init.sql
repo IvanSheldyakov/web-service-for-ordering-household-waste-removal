@@ -48,7 +48,7 @@ on conflict do nothing;
 create table if not exists user_info
 (
     id             bigserial primary key,
-    total_points   bigint        not null default 0 (total_points >= 0),
+    total_points   bigint        not null default 0 check (total_points >= 0),
     current_points bigint        not null default 0 check (current_points >= 0),
     habit_strength bigint        not null default 0,
     created_at     timestamptz   not null default now(),
@@ -75,7 +75,7 @@ create table if not exists courier
 (
     id           bigserial primary key,
     person_id    bigint not null unique,
-    total_points bigint not null default 0 (total_points >= 0),
+    total_points bigint not null default 0 check (total_points >= 0),
     constraint courier_person_id_fk foreign key (person_id) references person_info (id)
 );
 
@@ -415,3 +415,213 @@ values
  }'::jsonb)
 on conflict (code) do nothing;
 --------------------------- ЭКО-ЗАДАНИЯ ---------------------------
+
+--------------------------- ОПРОСНИК ПРИ РЕГИСТРАЦИИ ---------------------------
+create table if not exists registration_quiz
+(
+    id        serial primary key,
+    code      varchar(64) not null,
+    version   int         not null check (version > 0),
+    is_active boolean     not null default false,
+    unique (code, version)
+);
+
+create table if not exists registration_quiz_question
+(
+    id          serial primary key,
+    quiz_id     int          not null,
+    code        varchar(64)  not null,
+    ord         int          not null check (ord > 0),
+    text        varchar(512) not null,
+    is_active   boolean      not null default true,
+    is_tiebreak boolean      not null default false,
+    constraint registration_quiz_question_quiz_id_fk
+        foreign key (quiz_id) references registration_quiz (id) on delete cascade,
+    unique (quiz_id, code),
+    unique (quiz_id, ord)
+);
+
+create table if not exists registration_quiz_option
+(
+    id           serial primary key,
+    question_id  int          not null,
+    ord          int          not null check (ord > 0),
+    text         varchar(512) not null,
+    user_type_id int          not null,
+    score        int          not null default 2 check (score > 0),
+    is_active    boolean      not null default true,
+    constraint registration_quiz_option_question_id_fk
+        foreign key (question_id) references registration_quiz_question (id) on delete cascade,
+    constraint registration_quiz_option_user_type_id_fk
+        foreign key (user_type_id) references user_type (id),
+    unique (question_id, ord)
+);
+
+create index if not exists registration_quiz_question_quiz_idx
+    on registration_quiz_question (quiz_id);
+
+create index if not exists registration_quiz_option_question_idx
+    on registration_quiz_option (question_id);
+
+insert into registration_quiz (code, version, is_active)
+values ('REGISTRATION_HEXAD_LITE', 1, true)
+on conflict (code, version) do update
+    set is_active = excluded.is_active;
+
+insert into registration_quiz_question (quiz_id, code, ord, text, is_tiebreak)
+values (1,
+        'Q1_MAIN_MOTIVATION', 1,
+        'Что вас больше всего мотивирует продолжать пользоваться сервисом?', false),
+
+       (1,
+        'Q2_TASK_STYLE', 2,
+        'Какие задания вам интереснее выполнять?', false),
+
+       (1,
+        'Q3_AFTER_ACTION', 3,
+        'После действия (заказ/зелёный слот/задание) что вам приятнее увидеть?', false),
+
+       (1,
+        'Q4_HOME_FOCUS', 4,
+        'Что вы хотите видеть на главной странице в первую очередь?', false),
+
+       (1,
+        'Q5_COMPETITION', 5,
+        'Как вы относитесь к соревнованию?', false),
+
+       (1,
+        'Q6_DECISION_STYLE', 6,
+        'Когда вы выбираете, как действовать, что вам ближе?', false),
+
+       (1,
+        'Q7_TIEBREAK', 7,
+        'Если выбрать только одно, что важнее всего?', true)
+on conflict (quiz_id, code) do nothing;
+
+insert into registration_quiz_option (question_id, ord, text, user_type_id, score)
+values (1,
+        1,
+        'Видеть личный прогресс: цели, уровни, “ещё чуть-чуть до следующего шага”.',
+        (select id from user_type where name = 'ACHIEVER'),
+        2),
+       (1,
+        2,
+        'Чувствовать себя частью района: сравнивать результаты и вклад “соседей”.',
+        (select id from user_type where name = 'SOCIALIZER'),
+        2),
+       (1,
+        3,
+        'Узнавать новое: советы и объяснения, как правильно сортировать.',
+        (select id from user_type where name = 'EXPLORER'),
+        2)
+on conflict (question_id, ord) do nothing;
+
+insert into registration_quiz_option (question_id, ord, text, user_type_id, score)
+values (2,
+        1,
+        'Чёткие цели: “сделай N раз” и отметка “выполнено”.',
+        (select id from user_type where name = 'ACHIEVER'),
+        2),
+       (2,
+        2,
+        'Челленджи с другими: “сделаем вместе / посмотрим, кто активнее”.',
+        (select id from user_type where name = 'SOCIALIZER'),
+        2),
+       (2,
+        3,
+        'Задания-эксперименты: попробовать новый способ сортировки и понять, как это работает.',
+        (select id from user_type where name = 'EXPLORER'),
+        2)
+on conflict (question_id, ord) do nothing;
+
+insert into registration_quiz_option (question_id, ord, text, user_type_id, score)
+values (3,
+        1,
+        'Прогресс засчитан: +баллы, шаг к уровню/цели.',
+        (select id from user_type where name = 'ACHIEVER'),
+        2),
+       (3,
+        2,
+        'Это повлияло на рейтинг/позицию в районе.',
+        (select id from user_type where name = 'SOCIALIZER'),
+        2),
+       (3,
+        3,
+        'Короткое объяснение: почему это полезно и что это даёт.',
+        (select id from user_type where name = 'EXPLORER'),
+        2)
+on conflict (question_id, ord) do nothing;
+
+insert into registration_quiz_option (question_id, ord, text, user_type_id, score)
+values (4,
+        1,
+        'Мой уровень и прогресс до следующего уровня.',
+        (select id from user_type where name = 'ACHIEVER'),
+        2),
+       (4,
+        2,
+        'Моё место в рейтинге района (за неделю/месяц).',
+        (select id from user_type where name = 'SOCIALIZER'),
+        2),
+       (4,
+        3,
+        '“Совет/факт дня” — короткая полезная карточка.',
+        (select id from user_type where name = 'EXPLORER'),
+        2)
+on conflict (question_id, ord) do nothing;
+
+insert into registration_quiz_option (question_id, ord, text, user_type_id, score)
+values (5,
+        1,
+        'Мне важнее “соревноваться с собой” — улучшать личный результат.',
+        (select id from user_type where name = 'ACHIEVER'),
+        2),
+       (5,
+        2,
+        'Мне нравится дружеское соревнование с другими людьми.',
+        (select id from user_type where name = 'SOCIALIZER'),
+        2),
+       (5,
+        3,
+        'Соревнование не важно — важнее разобраться и делать правильно.',
+        (select id from user_type where name = 'EXPLORER'),
+        2)
+on conflict (question_id, ord) do nothing;
+
+insert into registration_quiz_option (question_id, ord, text, user_type_id, score)
+values (6,
+        1,
+        'Опираться на цифры и прогресс (баллы, уровни, цели).',
+        (select id from user_type where name = 'ACHIEVER'),
+        2),
+       (6,
+        2,
+        'Опираться на пример/результаты других людей рядом.',
+        (select id from user_type where name = 'SOCIALIZER'),
+        2),
+       (6,
+        3,
+        'Сначала понять “почему так”, а потом действовать.',
+        (select id from user_type where name = 'EXPLORER'),
+        2)
+on conflict (question_id, ord) do nothing;
+
+insert into registration_quiz_option (question_id, ord, text, user_type_id, score)
+values (7,
+        1,
+        'Личный прогресс и достижение целей.',
+        (select id from user_type where name = 'ACHIEVER'),
+        2),
+       (7,
+        2,
+        'Сообщество и сравнение результатов.',
+        (select id from user_type where name = 'SOCIALIZER'),
+        2),
+       (7,
+        3,
+        'Понимание и новые знания.',
+        (select id from user_type where name = 'EXPLORER'),
+        2)
+on conflict (question_id, ord) do nothing;
+
+--------------------------- ОПРОСНИК ПРИ РЕГИСТРАЦИИ ---------------------------
