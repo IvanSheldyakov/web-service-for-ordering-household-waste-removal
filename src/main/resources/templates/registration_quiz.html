@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация: опрос</title>
+    <link rel="stylesheet" th:href="@{/css/registration.css}">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header('Регистрация пользователя')}"></div>
+<main class="app-shell">
+    <section class="card">
+        <h2>Шаг 2. Опрос</h2>
+        <p class="hint">
+            Активный опрос:
+            <span th:text="${quiz.code}">REGISTRATION_HEXAD_LITE</span>
+            v<span th:text="${quiz.version}">1</span>
+        </p>
+
+        <p class="error" th:if="${quizError}" th:text="${quizError}"></p>
+
+        <form th:action="@{/registration/quiz}" th:object="${quizAnswerForm}" method="post">
+            <input type="hidden" th:field="*{quizId}">
+
+            <div class="quiz-block" th:each="question, qStat : ${quiz.questions}">
+                <h3>
+                    <span th:text="${question.ord}">1</span>.
+                    <span th:text="${question.text}">Вопрос</span>
+                </h3>
+                <div class="option-list" th:each="option, optStat : ${question.options}">
+                    <label>
+                        <input
+                                type="radio"
+                                th:field="*{answers[__${question.id}__]}"
+                                th:value="${option.id}"
+                                th:required="${optStat.first}">
+                        <span th:text="${option.text}">Ответ</span>
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit">Завершить регистрацию</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>
