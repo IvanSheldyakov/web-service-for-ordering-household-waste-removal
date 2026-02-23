@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserTypeInfo;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
 
@@ -39,35 +40,35 @@ public class UserTypeRepository {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public List<UserType> findAll() {
+    public List<UserTypeInfo> findAll() {
         return namedParameterJdbcTemplate.query(
                 FIND_ALL_QUERY,
                 Map.of(),
-                (rs, rowNum) -> new UserType(
+                (rs, rowNum) -> new UserTypeInfo(
                         rs.getInt(ColumnNames.ID),
-                        rs.getString(ColumnNames.NAME)
+                        UserType.fromDbName(rs.getString(ColumnNames.NAME))
                 )
         );
     }
 
-    public Optional<UserType> findByName(String name) {
+    public Optional<UserTypeInfo> findByName(UserType userType) {
         return namedParameterJdbcTemplate.query(
                 FIND_BY_NAME_QUERY,
-                new MapSqlParameterSource(ParameterNames.NAME, name),
-                (rs, rowNum) -> new UserType(
+                new MapSqlParameterSource(ParameterNames.NAME, userType.name()),
+                (rs, rowNum) -> new UserTypeInfo(
                         rs.getInt(ColumnNames.ID),
-                        rs.getString(ColumnNames.NAME)
+                        UserType.fromDbName(rs.getString(ColumnNames.NAME))
                 )
         ).stream().findFirst();
     }
 
-    public Optional<UserType> findById(int id) {
+    public Optional<UserTypeInfo> findById(int id) {
         return namedParameterJdbcTemplate.query(
                 FIND_BY_ID_QUERY,
                 new MapSqlParameterSource(ParameterNames.ID, id),
-                (rs, rowNum) -> new UserType(
+                (rs, rowNum) -> new UserTypeInfo(
                         rs.getInt(ColumnNames.ID),
-                        rs.getString(ColumnNames.NAME)
+                        UserType.fromDbName(rs.getString(ColumnNames.NAME))
                 )
         ).stream().findFirst();
     }

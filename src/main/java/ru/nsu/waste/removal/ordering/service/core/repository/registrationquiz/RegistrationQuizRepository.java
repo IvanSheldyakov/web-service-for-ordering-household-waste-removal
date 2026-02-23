@@ -26,34 +26,12 @@ public class RegistrationQuizRepository {
             limit 1
             """;
 
-    private static final String FIND_ANY_LATEST_ACTIVE_QUERY = """
-            select id,
-                   code,
-                   version
-            from registration_quiz
-            where is_active = true
-            order by version desc
-            limit 1
-            """;
-
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public Optional<RegistrationQuiz> findLatestActiveByCode(String code) {
         return namedParameterJdbcTemplate.query(
                 FIND_LATEST_ACTIVE_BY_CODE_QUERY,
                 new MapSqlParameterSource(ParameterNames.CODE, code),
-                (rs, rowNum) -> new RegistrationQuiz(
-                        rs.getInt(ColumnNames.ID),
-                        rs.getString(ColumnNames.CODE),
-                        rs.getInt(ColumnNames.VERSION)
-                )
-        ).stream().findFirst();
-    }
-
-    public Optional<RegistrationQuiz> findAnyLatestActive() {
-        return namedParameterJdbcTemplate.query(
-                FIND_ANY_LATEST_ACTIVE_QUERY,
-                Map.of(),
                 (rs, rowNum) -> new RegistrationQuiz(
                         rs.getInt(ColumnNames.ID),
                         rs.getString(ColumnNames.CODE),

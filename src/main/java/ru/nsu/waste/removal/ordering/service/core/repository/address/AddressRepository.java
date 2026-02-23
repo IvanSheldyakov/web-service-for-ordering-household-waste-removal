@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
+import ru.nsu.waste.removal.ordering.service.core.model.address.AddressCreationData;
 
 @Repository
 @RequiredArgsConstructor
@@ -32,21 +33,14 @@ public class AddressRepository {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public long add(
-            String countryCode,
-            String region,
-            String city,
-            String postalCode,
-            String detailedAddress,
-            String timezone
-    ) {
+    public long add(AddressCreationData addressCreationData) {
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue(ParameterNames.COUNTRY_CODE, countryCode)
-                .addValue(ParameterNames.REGION, region)
-                .addValue(ParameterNames.CITY, city)
-                .addValue(ParameterNames.POSTAL_CODE, postalCode)
-                .addValue(ParameterNames.DETAILED_ADDRESS, detailedAddress)
-                .addValue(ParameterNames.TIMEZONE, timezone);
+                .addValue(ParameterNames.COUNTRY_CODE, addressCreationData.countryCode())
+                .addValue(ParameterNames.REGION, addressCreationData.region())
+                .addValue(ParameterNames.CITY, addressCreationData.city())
+                .addValue(ParameterNames.POSTAL_CODE, addressCreationData.postalCode())
+                .addValue(ParameterNames.DETAILED_ADDRESS, addressCreationData.detailedAddress())
+                .addValue(ParameterNames.TIMEZONE, addressCreationData.timezone());
 
         Long id = namedParameterJdbcTemplate.queryForObject(ADD_QUERY, params, Long.class);
 

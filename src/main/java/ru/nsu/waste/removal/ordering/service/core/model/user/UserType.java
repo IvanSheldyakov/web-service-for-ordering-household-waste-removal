@@ -1,7 +1,13 @@
 package ru.nsu.waste.removal.ordering.service.core.model.user;
 
-public record UserType(
-        int id,
-        String name
-) {
+import java.util.Locale;
+
+public enum UserType {
+    ACHIEVER,
+    SOCIALIZER,
+    EXPLORER;
+
+    public static UserType fromDbName(String value) {
+        return UserType.valueOf(value.trim().toUpperCase(Locale.ROOT));
+    }
 }

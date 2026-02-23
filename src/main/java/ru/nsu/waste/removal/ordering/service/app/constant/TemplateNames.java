@@ -1,4 +1,4 @@
-package ru.nsu.waste.removal.ordering.service.app;
+package ru.nsu.waste.removal.ordering.service.app.constant;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

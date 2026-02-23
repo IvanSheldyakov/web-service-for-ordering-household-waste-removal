@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
+import ru.nsu.waste.removal.ordering.service.core.model.person.PersonCreationData;
 
 @Repository
 @RequiredArgsConstructor
@@ -46,13 +47,13 @@ public class PersonInfoRepository {
         return exists != null && exists;
     }
 
-    public long add(long phone, String email, String name, String surname, String patronymic) {
+    public long add(PersonCreationData personCreationData) {
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue(ParameterNames.PHONE, phone)
-                .addValue(ParameterNames.EMAIL, email)
-                .addValue(ParameterNames.NAME, name)
-                .addValue(ParameterNames.SURNAME, surname)
-                .addValue(ParameterNames.PATRONYMIC, patronymic);
+                .addValue(ParameterNames.PHONE, personCreationData.phone())
+                .addValue(ParameterNames.EMAIL, personCreationData.email())
+                .addValue(ParameterNames.NAME, personCreationData.name())
+                .addValue(ParameterNames.SURNAME, personCreationData.surname())
+                .addValue(ParameterNames.PATRONYMIC, personCreationData.patronymic());
 
         Long id = namedParameterJdbcTemplate.queryForObject(ADD_QUERY, params, Long.class);
 
