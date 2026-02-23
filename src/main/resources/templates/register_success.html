@@ -12,7 +12,7 @@
     <section class="card">
         <h2>Регистрация завершена</h2>
         <p><strong>User ID:</strong> <span th:text="${result.userId}">0</span></p>
-        <p><strong>Тип пользователя:</strong> <span th:text="${result.userTypeName}">ACHIEVER</span></p>
+        <p><strong>Тип пользователя:</strong> <span th:text="${result.userTypeName}">Достигатель</span></p>
         <p>
             <strong>Баланс:</strong>
             total=<span th:text="${result.balances.totalPoints}">0</span>,
@@ -23,7 +23,7 @@
     <section class="card">
         <h2>Мотивационный блок</h2>
 
-        <div th:if="${result.userTypeName == 'ACHIEVER'}">
+        <div th:if="${result.motivationBlock.currentLevelRequiredPoints != null}">
             <p>Текущий уровень: <span th:text="${result.motivationBlock.currentLevelRequiredPoints}">1000</span> required_total_points</p>
             <div class="progress">
                 <div class="progress-bar" th:style="'width:' + ${result.motivationBlock.progressPercentToNextLevel} + '%'"></div>
@@ -31,12 +31,12 @@
             <p th:text="${result.motivationBlock.message}">Описание</p>
         </div>
 
-        <div th:if="${result.userTypeName == 'SOCIALIZER'}">
+        <div th:if="${result.motivationBlock.postalCode != null}">
             <p>Район (postal_code): <span th:text="${result.motivationBlock.postalCode}">000000</span></p>
             <p th:text="${result.motivationBlock.message}">Рейтинг появится после первых действий.</p>
         </div>
 
-        <div th:if="${result.userTypeName == 'EXPLORER'}">
+        <div th:if="${result.motivationBlock.currentLevelRequiredPoints == null and result.motivationBlock.postalCode == null}">
             <p th:text="${result.motivationBlock.message}">Изучайте карточки.</p>
             <ul>
                 <li th:each="card : ${result.infoCards}">

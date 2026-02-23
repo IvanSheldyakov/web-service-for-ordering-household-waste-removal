@@ -11,22 +11,18 @@ import ru.nsu.waste.removal.ordering.service.core.model.achievement.Achievement;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.AssignedEcoTask;
 import ru.nsu.waste.removal.ordering.service.core.model.infocard.InfoCard;
 import ru.nsu.waste.removal.ordering.service.core.model.level.Level;
+import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
-import ru.nsu.waste.removal.ordering.service.core.model.user.UserTypeInfo;
-import ru.nsu.waste.removal.ordering.service.core.repository.achievement.AchievementRepository;
-import ru.nsu.waste.removal.ordering.service.core.repository.infocard.InfoCardRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.level.LevelRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.person.PersonInfoRepository;
-import ru.nsu.waste.removal.ordering.service.core.repository.user.UserTypeRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.address.AddressService;
 import ru.nsu.waste.removal.ordering.service.core.service.address.mapper.AddressMapper;
-import ru.nsu.waste.removal.ordering.service.core.model.address.AddressCreationData;
+import ru.nsu.waste.removal.ordering.service.core.service.achievement.AchievementService;
 import ru.nsu.waste.removal.ordering.service.core.service.ecotask.EcoTaskService;
+import ru.nsu.waste.removal.ordering.service.core.service.infocard.InfoCardService;
 import ru.nsu.waste.removal.ordering.service.core.service.person.PersonInfoService;
 import ru.nsu.waste.removal.ordering.service.core.service.person.mapper.PersonInfoMapper;
-import ru.nsu.waste.removal.ordering.service.core.model.person.PersonCreationData;
 import ru.nsu.waste.removal.ordering.service.core.service.registrationquiz.RegistrationQuizService;
-import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserTypeService;
 
@@ -38,6 +34,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 public class RegistrationService {
+
     private final PersonInfoRepository personInfoRepository;
     private final PersonInfoService personInfoService;
     private final PersonInfoMapper personInfoMapper;
@@ -46,9 +43,8 @@ public class RegistrationService {
     private final UserInfoService userInfoService;
     private final EcoTaskService ecoTaskService;
     private final LevelRepository levelRepository;
-    private final UserTypeRepository userTypeRepository;
-    private final InfoCardRepository infoCardRepository;
-    private final AchievementRepository achievementRepository;
+    private final InfoCardService infoCardService;
+    private final AchievementService achievementService;
     private final RegistrationQuizService registrationQuizService;
     private final UserTypeService userTypeService;
 
@@ -65,26 +61,19 @@ public class RegistrationService {
         Map<Long, Long> answers = quizAnswerForm.getAnswers() == null ? Map.of() : quizAnswerForm.getAnswers();
         registrationQuizService.validateAnswers(answers);
 
-        int userTypeId = userTypeService.resolveUserTypeId(quizData, answers);
+        UserType userType = userTypeService.resolveUserType(quizData, answers);
 
-        PersonCreationData personCreationData = personInfoMapper.toPersonCreationData(form);
-        long personId = personInfoService.add(personCreationData);
-
-        AddressCreationData addressCreationData = addressMapper.toAddressCreationData(form, zoneId);
-        long addressId = addressService.add(addressCreationData);
-
-        long userId = userInfoService.add(userTypeId, addressId, personId);
+        long personId = personInfoService.add(personInfoMapper.toPersonCreationData(form));
+        long addressId = addressService.add(addressMapper.toAddressCreationData(form, zoneId));
+        long userId = userInfoService.add(userType, addressId, personId);
 
         List<AssignedEcoTask> assignedTasks =
-                ecoTaskService.assignStarterTasksAndGetAssigned(userTypeId, userId, zoneId);
+                ecoTaskService.assignStarterTasksAndGetAssigned(userType, userId, zoneId);
 
-        List<Achievement> achievements = achievementRepository.findByUserTypeId(userTypeId);
-        UserType userType = userTypeRepository.findById(userTypeId)
-                .map(UserTypeInfo::userType)
-                .orElseThrow(() -> new IllegalStateException("Не найден user_type для id=" + userTypeId));
-        String typeName = userType.name();
+        List<Achievement> achievements = achievementService.findByUserType(userType);
+        String typeName = userType.getRussianName();
 
-        List<InfoCard> cards = userType == UserType.EXPLORER ? infoCardRepository.findRandom(3) : List.of();
+        List<InfoCard> cards = infoCardService.findByUserType(userType);
         RegistrationResultViewModel.MotivationBlockViewModel motivationBlock =
                 buildMotivation(userType, form.getPostalCode().trim());
 
@@ -123,7 +112,7 @@ public class RegistrationService {
         if (userType == UserType.ACHIEVER) {
             Level firstLevel = levelRepository.findLowestLevel();
             return new RegistrationResultViewModel.MotivationBlockViewModel(
-                    userType.name(),
+                    userType.getRussianName(),
                     firstLevel.requiredTotalPoints(),
                     0,
                     null,
@@ -132,7 +121,7 @@ public class RegistrationService {
         }
         if (userType == UserType.SOCIALIZER) {
             return new RegistrationResultViewModel.MotivationBlockViewModel(
-                    userType.name(),
+                    userType.getRussianName(),
                     null,
                     null,
                     postalCode,
@@ -140,7 +129,7 @@ public class RegistrationService {
             );
         }
         return new RegistrationResultViewModel.MotivationBlockViewModel(
-                userType.name(),
+                userType.getRussianName(),
                 null,
                 null,
                 null,

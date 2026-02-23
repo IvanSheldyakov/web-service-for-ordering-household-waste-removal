@@ -51,7 +51,7 @@ class RegistrationServiceTest {
         RegistrationResultViewModel result = registrationService.register(form, answers);
 
         assertNotNull(result);
-        assertEquals("ACHIEVER", result.userTypeName());
+        assertEquals("Достигатель", result.userTypeName());
         assertEquals(0, result.balances().totalPoints());
         assertEquals(0, result.balances().currentPoints());
 
@@ -102,7 +102,7 @@ class RegistrationServiceTest {
 
         RegistrationResultViewModel result = registrationService.register(form, tieAnswers);
 
-        assertEquals("EXPLORER", result.userTypeName());
+        assertEquals("Исследователь", result.userTypeName());
         assertEquals(0, count("achiever_profile"));
     }
 

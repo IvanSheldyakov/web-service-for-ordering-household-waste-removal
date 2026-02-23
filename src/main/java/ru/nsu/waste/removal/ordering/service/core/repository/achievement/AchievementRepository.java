@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.nsu.waste.removal.ordering.service.core.model.achievement.Achievement;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
 
@@ -25,10 +26,10 @@ public class AchievementRepository {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public List<Achievement> findByUserTypeId(int userTypeId) {
+    public List<Achievement> findByUserType(UserType userType) {
         return namedParameterJdbcTemplate.query(
                 FIND_BY_USER_TYPE_ID_QUERY,
-                new MapSqlParameterSource(ParameterNames.USER_TYPE_ID, userTypeId),
+                new MapSqlParameterSource(ParameterNames.USER_TYPE_ID, userType.getId()),
                 (rs, rowNum) -> new Achievement(
                         rs.getInt(ColumnNames.ID),
                         rs.getString(ColumnNames.TITLE),

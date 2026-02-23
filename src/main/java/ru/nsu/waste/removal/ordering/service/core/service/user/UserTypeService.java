@@ -1,23 +1,18 @@
 package ru.nsu.waste.removal.ordering.service.core.service.user;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.nsu.waste.removal.ordering.service.app.controller.registration.exception.QuizValidationException;
+import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizOption;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizQuestion;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
-import ru.nsu.waste.removal.ordering.service.core.model.user.UserTypeInfo;
-import ru.nsu.waste.removal.ordering.service.core.repository.user.UserTypeRepository;
-import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
 
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class UserTypeService {
 
     private static final List<UserType> TYPE_PRIORITY = List.of(
@@ -26,27 +21,26 @@ public class UserTypeService {
             UserType.EXPLORER
     );
 
-    private final UserTypeRepository userTypeRepository;
-
-    public int resolveUserTypeId(
+    public UserType resolveUserType(
             ActiveRegistrationQuizData quizData,
             Map<Long, Long> answers
     ) {
         List<RegistrationQuizQuestion> questions = quizData.questions();
         Map<Integer, RegistrationQuizOption> optionById = quizData.optionById();
 
-        Map<Integer, Integer> scoreByType = new HashMap<>();
+        Map<UserType, Integer> scoreByType = new EnumMap<>(UserType.class);
         for (RegistrationQuizQuestion question : questions) {
             long optionId = answers.get((long) question.id());
             RegistrationQuizOption option = optionById.get((int) optionId);
-            scoreByType.merge(option.userTypeId(), option.score(), Integer::sum);
+            UserType userType = UserType.fromId(option.userTypeId());
+            scoreByType.merge(userType, option.score(), Integer::sum);
         }
 
         int maxScore = scoreByType.values().stream()
                 .max(Integer::compareTo)
                 .orElseThrow(() -> new QuizValidationException("Не удалось определить тип пользователя"));
 
-        List<Integer> winners = scoreByType.entrySet().stream()
+        List<UserType> winners = scoreByType.entrySet().stream()
                 .filter(entry -> entry.getValue() == maxScore)
                 .map(Map.Entry::getKey)
                 .toList();
@@ -54,15 +48,15 @@ public class UserTypeService {
             return winners.getFirst();
         }
 
-        Optional<Integer> tieBreakWinner = resolveTieBreakWinner(questions, answers, optionById, winners);
+        Optional<UserType> tieBreakWinner = resolveTieBreakWinner(questions, answers, optionById, winners);
         return tieBreakWinner.orElseGet(() -> resolveByPriority(winners));
     }
 
-    private Optional<Integer> resolveTieBreakWinner(
+    private Optional<UserType> resolveTieBreakWinner(
             List<RegistrationQuizQuestion> questions,
             Map<Long, Long> answers,
             Map<Integer, RegistrationQuizOption> optionById,
-            List<Integer> winners
+            List<UserType> winners
     ) {
         for (RegistrationQuizQuestion question : questions) {
             if (!question.tiebreak()) {
@@ -73,24 +67,25 @@ public class UserTypeService {
                 continue;
             }
             RegistrationQuizOption option = optionById.get(selectedOptionId.intValue());
-            if (option != null && winners.contains(option.userTypeId())) {
-                return Optional.of(option.userTypeId());
+            if (option == null) {
+                continue;
+            }
+            UserType userType = UserType.fromId(option.userTypeId());
+            if (winners.contains(userType)) {
+                return Optional.of(userType);
             }
         }
         return Optional.empty();
     }
 
-    private int resolveByPriority(List<Integer> winners) {
-        Map<UserType, Integer> typeIdsByName = userTypeRepository.findAll().stream()
-                .collect(Collectors.toMap(UserTypeInfo::userType, UserTypeInfo::id));
+    private UserType resolveByPriority(List<UserType> winners) {
         for (UserType userType : TYPE_PRIORITY) {
-            Integer typeId = typeIdsByName.get(userType);
-            if (typeId != null && winners.contains(typeId)) {
-                return typeId;
+            if (winners.contains(userType)) {
+                return userType;
             }
         }
         return winners.stream()
-                .min(Integer::compareTo)
+                .min((left, right) -> Integer.compare(left.getId(), right.getId()))
                 .orElseThrow(() -> new IllegalStateException("Не удалось разрешить ничью по типу пользователя"));
     }
 }

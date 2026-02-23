@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.AssignedEcoTask;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.EcoTask;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.EcoTaskPeriod;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.repository.ecotask.EcoTaskRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.ecotask.UserEcoTaskRepository;
 
@@ -26,8 +27,8 @@ public class EcoTaskService {
     private final UserEcoTaskRepository userEcoTaskRepository;
     private final Clock applicationClock;
 
-    public List<AssignedEcoTask> assignStarterTasksAndGetAssigned(int userTypeId, long userId, ZoneId zoneId) {
-        List<EcoTask> starterTasks = ecoTaskRepository.findActiveByUserType(userTypeId, STARTER_TASK_LIMIT);
+    public List<AssignedEcoTask> assignStarterTasksAndGetAssigned(UserType userType, long userId, ZoneId zoneId) {
+        List<EcoTask> starterTasks = ecoTaskRepository.findActiveByUserType(userType.getId(), STARTER_TASK_LIMIT);
         for (EcoTask task : starterTasks) {
             if (userEcoTaskRepository.existsActiveAssignment(userId, task.id())) {
                 continue;
@@ -69,4 +70,3 @@ public class EcoTaskService {
         return OffsetDateTime.ofInstant(zonedExpiration.toInstant(), zoneId);
     }
 }
-
