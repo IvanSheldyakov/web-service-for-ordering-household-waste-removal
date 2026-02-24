@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.nsu.waste.removal.ordering.service.core.model.level.Level;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserProfileInfo;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.repository.level.LevelRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
@@ -24,5 +25,10 @@ public class UserInfoService {
         }
 
         return userId;
+    }
+
+    public UserProfileInfo getProfileByUserId(long userId) {
+        return userInfoRepository.findProfileByUserId(userId)
+                .orElseThrow(() -> new IllegalStateException("User with id = %s was not found".formatted(userId)));
     }
 }

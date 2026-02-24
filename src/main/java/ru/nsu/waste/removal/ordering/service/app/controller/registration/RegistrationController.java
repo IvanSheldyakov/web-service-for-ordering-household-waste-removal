@@ -22,6 +22,7 @@ import ru.nsu.waste.removal.ordering.service.app.controller.registration.view.Re
 import ru.nsu.waste.removal.ordering.service.app.controller.registration.view.RegistrationResultViewModel;
 import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
+import ru.nsu.waste.removal.ordering.service.core.service.person.PersonInfoService;
 import ru.nsu.waste.removal.ordering.service.core.service.registration.RegistrationService;
 import ru.nsu.waste.removal.ordering.service.core.service.registrationquiz.RegistrationQuizService;
 import ru.nsu.waste.removal.ordering.service.core.service.timezone.TimezoneService;
@@ -43,6 +44,7 @@ public class RegistrationController {
     private final RegistrationService registrationService;
     private final RegistrationQuizService registrationQuizService;
     private final TimezoneService timezoneService;
+    private final PersonInfoService personInfoService;
 
     @ModelAttribute(AttributeNames.REGISTRATION_FORM)
     public RegistrationForm registrationForm() {
@@ -132,7 +134,7 @@ public class RegistrationController {
         }
         boolean exists;
         try {
-            exists = registrationService.isPhoneRegistered(form.getPhone().trim());
+            exists = personInfoService.isPhoneRegistered(form.getPhone().trim());
         } catch (NumberFormatException e) {
             return;
         }

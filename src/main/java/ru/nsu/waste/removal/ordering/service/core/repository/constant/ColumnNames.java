@@ -60,6 +60,10 @@ public final class ColumnNames {
 
     public static final String PERSON_ID = "person_id";
 
+    public static final String TOTAL_POINTS = "total_points";
+
+    public static final String CURRENT_POINTS = "current_points";
+
     public static final String ECO_TASK_ID = "eco_task_id";
 
     public static final String POINTS = "points";

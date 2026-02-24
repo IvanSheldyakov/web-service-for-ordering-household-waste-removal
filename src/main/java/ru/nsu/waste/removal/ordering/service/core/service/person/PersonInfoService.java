@@ -22,4 +22,8 @@ public class PersonInfoService {
             throw new DuplicatePhoneException(PHONE_ALREADY_REGISTERED, e);
         }
     }
+
+    public boolean isPhoneRegistered(String phone) {
+        return personInfoRepository.existsByPhone(Long.parseLong(phone));
+    }
 }

@@ -27,7 +27,7 @@ public class EcoTaskService {
     private final UserEcoTaskRepository userEcoTaskRepository;
     private final Clock applicationClock;
 
-    public List<AssignedEcoTask> assignStarterTasksAndGetAssigned(UserType userType, long userId, ZoneId zoneId) {
+    public void assignStarterTasks(UserType userType, long userId, ZoneId zoneId) {
         List<EcoTask> starterTasks = ecoTaskRepository.findActiveByUserType(userType.getId(), STARTER_TASK_LIMIT);
         for (EcoTask task : starterTasks) {
             if (userEcoTaskRepository.existsActiveAssignment(userId, task.id())) {
@@ -36,7 +36,9 @@ public class EcoTaskService {
             OffsetDateTime expiredAt = calculateExpiredAt(task.period(), zoneId);
             userEcoTaskRepository.addAssigned(userId, task.id(), expiredAt);
         }
+    }
 
+    public List<AssignedEcoTask> findAssignedByUserId(long userId) {
         return userEcoTaskRepository.findAssignedByUserId(userId);
     }
 
