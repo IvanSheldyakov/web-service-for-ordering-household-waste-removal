@@ -12,9 +12,8 @@
     <section class="card">
         <h2>Шаг 2. Опрос</h2>
         <p class="hint">
-            Активный опрос:
-            <span th:text="${quiz.code}">REGISTRATION_HEXAD_LITE</span>
-            v<span th:text="${quiz.version}">1</span>
+            Активный опрос, версия:
+            <span th:text="${quiz.version}">1</span>
         </p>
 
         <p class="error" th:if="${quizError}" th:text="${quizError}"></p>

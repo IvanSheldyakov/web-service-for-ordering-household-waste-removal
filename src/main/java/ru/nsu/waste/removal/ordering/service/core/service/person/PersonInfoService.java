@@ -3,7 +3,7 @@ package ru.nsu.waste.removal.ordering.service.core.service.person;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import ru.nsu.waste.removal.ordering.service.app.controller.registration.exception.DuplicatePhoneException;
+import ru.nsu.waste.removal.ordering.service.core.exception.DuplicatePhoneException;
 import ru.nsu.waste.removal.ordering.service.core.repository.person.PersonInfoRepository;
 import ru.nsu.waste.removal.ordering.service.core.model.person.PersonCreationData;
 

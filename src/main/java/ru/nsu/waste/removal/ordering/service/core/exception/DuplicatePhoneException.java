@@ -1,4 +1,4 @@
-package ru.nsu.waste.removal.ordering.service.app.controller.registration.exception;
+package ru.nsu.waste.removal.ordering.service.core.exception;
 
 public class DuplicatePhoneException extends RuntimeException {
 

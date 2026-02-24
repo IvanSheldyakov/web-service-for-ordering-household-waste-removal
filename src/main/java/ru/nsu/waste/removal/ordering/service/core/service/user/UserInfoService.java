@@ -29,6 +29,9 @@ public class UserInfoService {
 
     public UserProfileInfo getProfileByUserId(long userId) {
         return userInfoRepository.findProfileByUserId(userId)
-                .orElseThrow(() -> new IllegalStateException("User with id = %s was not found".formatted(userId)));
+                .orElseThrow(() -> new IllegalStateException(
+                        "\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0441 id = %s \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d"
+                                .formatted(userId)
+                ));
     }
 }

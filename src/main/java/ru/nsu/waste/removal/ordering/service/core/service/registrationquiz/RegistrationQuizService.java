@@ -2,8 +2,8 @@ package ru.nsu.waste.removal.ordering.service.core.service.registrationquiz;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.nsu.waste.removal.ordering.service.app.controller.registration.exception.QuizValidationException;
-import ru.nsu.waste.removal.ordering.service.app.controller.registration.view.RegistrationQuizViewModel;
+import ru.nsu.waste.removal.ordering.service.core.exception.QuizValidationException;
+import ru.nsu.waste.removal.ordering.service.app.view.RegistrationQuizViewModel;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuiz;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizOption;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizQuestion;

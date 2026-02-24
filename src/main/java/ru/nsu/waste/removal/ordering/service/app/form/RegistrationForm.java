@@ -11,45 +11,51 @@ import lombok.Setter;
 @Setter
 public class RegistrationForm {
 
-    @NotBlank(message = "Телефон обязателен")
-    @Pattern(regexp = "^\\d{10,15}$", message = "Телефон должен содержать 10-15 цифр")
+    @NotBlank(message = "\u0422\u0435\u043b\u0435\u0444\u043e\u043d \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d")
+    @Pattern(
+            regexp = "^\\d{10,15}$",
+            message = "\u0422\u0435\u043b\u0435\u0444\u043e\u043d \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0434\u0435\u0440\u0436\u0430\u0442\u044c 10-15 \u0446\u0438\u0444\u0440"
+    )
     private String phone;
 
-    @NotBlank(message = "Email обязателен")
-    @Email(message = "Некорректный email")
+    @NotBlank(message = "\u042d\u043b\u0435\u043a\u0442\u0440\u043e\u043d\u043d\u0430\u044f \u043f\u043e\u0447\u0442\u0430 \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u0430")
+    @Email(message = "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u0430\u044f \u044d\u043b\u0435\u043a\u0442\u0440\u043e\u043d\u043d\u0430\u044f \u043f\u043e\u0447\u0442\u0430")
     private String email;
 
-    @NotBlank(message = "Имя обязательно")
-    @Size(max = 256, message = "Имя слишком длинное")
+    @NotBlank(message = "\u0418\u043c\u044f \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u043e")
+    @Size(max = 256, message = "\u0418\u043c\u044f \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u043e\u0435")
     private String name;
 
-    @NotBlank(message = "Фамилия обязательна")
-    @Size(max = 256, message = "Фамилия слишком длинная")
+    @NotBlank(message = "\u0424\u0430\u043c\u0438\u043b\u0438\u044f \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u044c\u043d\u0430")
+    @Size(max = 256, message = "\u0424\u0430\u043c\u0438\u043b\u0438\u044f \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u0430\u044f")
     private String surname;
 
-    @Size(max = 256, message = "Отчество слишком длинное")
+    @Size(max = 256, message = "\u041e\u0442\u0447\u0435\u0441\u0442\u0432\u043e \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u043e\u0435")
     private String patronymic;
 
-    @NotBlank(message = "Код страны обязателен")
-    @Pattern(regexp = "^[A-Za-z]{2}$", message = "Код страны должен состоять из 2 букв")
+    @NotBlank(message = "\u041a\u043e\u0434 \u0441\u0442\u0440\u0430\u043d\u044b \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d")
+    @Pattern(
+            regexp = "^[A-Za-z]{2}$",
+            message = "\u041a\u043e\u0434 \u0441\u0442\u0440\u0430\u043d\u044b \u0434\u043e\u043b\u0436\u0435\u043d \u0441\u043e\u0441\u0442\u043e\u044f\u0442\u044c \u0438\u0437 2 \u0431\u0443\u043a\u0432"
+    )
     private String countryCode;
 
-    @NotBlank(message = "Регион обязателен")
-    @Size(max = 128, message = "Регион слишком длинный")
+    @NotBlank(message = "\u0420\u0435\u0433\u0438\u043e\u043d \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d")
+    @Size(max = 128, message = "\u0420\u0435\u0433\u0438\u043e\u043d \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u044b\u0439")
     private String region;
 
-    @NotBlank(message = "Город обязателен")
-    @Size(max = 128, message = "Город слишком длинный")
+    @NotBlank(message = "\u0413\u043e\u0440\u043e\u0434 \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d")
+    @Size(max = 128, message = "\u0413\u043e\u0440\u043e\u0434 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u044b\u0439")
     private String city;
 
-    @NotBlank(message = "Почтовый индекс обязателен")
-    @Size(max = 16, message = "Почтовый индекс слишком длинный")
+    @NotBlank(message = "\u041f\u043e\u0447\u0442\u043e\u0432\u044b\u0439 \u0438\u043d\u0434\u0435\u043a\u0441 \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d")
+    @Size(max = 16, message = "\u041f\u043e\u0447\u0442\u043e\u0432\u044b\u0439 \u0438\u043d\u0434\u0435\u043a\u0441 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u044b\u0439")
     private String postalCode;
 
-    @NotBlank(message = "Подробный адрес обязателен")
-    @Size(max = 256, message = "Адрес слишком длинный")
+    @NotBlank(message = "\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u044b\u0439 \u0430\u0434\u0440\u0435\u0441 \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d")
+    @Size(max = 256, message = "\u0410\u0434\u0440\u0435\u0441 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u044b\u0439")
     private String detailedAddress;
 
-    @NotBlank(message = "Часовой пояс обязателен")
+    @NotBlank(message = "\u0427\u0430\u0441\u043e\u0432\u043e\u0439 \u043f\u043e\u044f\u0441 \u043e\u0431\u044f\u0437\u0430\u0442\u0435\u043b\u0435\u043d")
     private String timezone;
 }

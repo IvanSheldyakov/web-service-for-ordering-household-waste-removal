@@ -1,4 +1,4 @@
-package ru.nsu.waste.removal.ordering.service.app.controller.registration.view;
+package ru.nsu.waste.removal.ordering.service.app.view;
 
 import java.util.List;
 

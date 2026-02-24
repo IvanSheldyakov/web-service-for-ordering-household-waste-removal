@@ -2,7 +2,7 @@ package ru.nsu.waste.removal.ordering.service.core.service.user;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import ru.nsu.waste.removal.ordering.service.app.controller.registration.view.RegistrationResultViewModel;
+import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
 import ru.nsu.waste.removal.ordering.service.core.model.achievement.Achievement;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.AssignedEcoTask;
 import ru.nsu.waste.removal.ordering.service.core.model.infocard.InfoCard;

@@ -8,10 +8,10 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
-import ru.nsu.waste.removal.ordering.service.app.controller.registration.exception.DuplicatePhoneException;
+import ru.nsu.waste.removal.ordering.service.core.exception.DuplicatePhoneException;
 import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
-import ru.nsu.waste.removal.ordering.service.app.controller.registration.view.RegistrationResultViewModel;
+import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
 import ru.nsu.waste.removal.ordering.service.core.service.registration.RegistrationService;
 
 import java.time.*;

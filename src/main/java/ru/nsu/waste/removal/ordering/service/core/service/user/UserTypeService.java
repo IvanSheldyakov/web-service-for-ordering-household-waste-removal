@@ -1,7 +1,7 @@
 package ru.nsu.waste.removal.ordering.service.core.service.user;
 
 import org.springframework.stereotype.Service;
-import ru.nsu.waste.removal.ordering.service.app.controller.registration.exception.QuizValidationException;
+import ru.nsu.waste.removal.ordering.service.core.exception.QuizValidationException;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizOption;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizQuestion;
