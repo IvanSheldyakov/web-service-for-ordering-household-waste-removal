@@ -39,11 +39,27 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'com.h2database:h2'
+	testImplementation 'org.testcontainers:junit-jupiter:1.19.8'
+	testImplementation 'org.testcontainers:postgresql:1.19.8'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'e2e'
+	}
+}
+
+tasks.register('e2eTest', Test) {
+	description = 'Runs end-to-end tests with Testcontainers'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'e2e'
+	}
+	shouldRunAfter(tasks.named('test'))
+	maxParallelForks = 1
 }
 
 tasks.withType(JavaCompile).configureEach {
