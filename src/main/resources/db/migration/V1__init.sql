@@ -22,7 +22,7 @@ create table if not exists person_info
 
 create table if not exists address
 (
-    id               bigint primary key,
+    id               bigserial primary key,
     country_code     varchar(2)   not null,
     postal_code      varchar(16)  not null,
     city             varchar(128) not null,
