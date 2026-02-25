@@ -54,4 +54,16 @@ public final class ParameterNames {
 
     public static final String ID = "id";
 
+    public static final String TOTAL_POINTS = "totalPoints";
+
+    public static final String CURRENT_POINTS = "currentPoints";
+
+    public static final String HABIT_STRENGTH = "habitStrength";
+
+    public static final String EVENT_TYPE = "eventType";
+
+    public static final String CONTENT = "content";
+
+    public static final String POINTS_DIFFERENCE = "pointsDifference";
+
 }
