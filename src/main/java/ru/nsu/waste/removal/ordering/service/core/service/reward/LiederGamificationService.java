@@ -1,16 +1,18 @@
 package ru.nsu.waste.removal.ordering.service.core.service.reward;
 
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.model.event.LiederRewardEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.reward.RewardApplicationResult;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserRewardState;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
-
-import java.util.Locale;
+import ru.nsu.waste.removal.ordering.service.core.service.level.LevelService;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +39,8 @@ public class LiederGamificationService {
 
     private final UserInfoRepository userInfoRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
+    private final ObjectMapper objectMapper;
+    private final LevelService levelService;
 
     /**
      * Применить оптимизированную награду (модель Лидера) к пользователю.
@@ -91,6 +95,10 @@ public class LiederGamificationService {
         );
         userActionHistoryRepository.addEvent(userId, eventType.dbName(), contentJson, appliedDelta);
 
+        if (appliedDelta > 0) {
+            levelService.updateLevelIfNeeded(userId, state.totalPoints(), newTotalPoints);
+        }
+
         return new RewardApplicationResult(
                 userId,
                 eventType,
@@ -129,7 +137,7 @@ public class LiederGamificationService {
         return r;
     }
 
-    private static String buildContentJson(
+    private String buildContentJson(
             boolean success,
             double oldStrength,
             double newStrength,
@@ -138,17 +146,8 @@ public class LiederGamificationService {
             long appliedDelta
     ) {
         // content можно расширять (например, id заказа/эко-задания и т.д.)
-        return String.format(Locale.ROOT,
-                "{\"algo\":\"LIEDER_OPTIMIZED\"," +
-                        "\"alpha\":%.4f," +
-                        "\"theta\":%.4f," +
-                        "\"maxPoints\":%d," +
-                        "\"success\":%s," +
-                        "\"oldStrength\":%.6f," +
-                        "\"newStrength\":%.6f," +
-                        "\"fValue\":%.6f," +
-                        "\"calculatedPoints\":%d," +
-                        "\"appliedPoints\":%d}",
+        LiederRewardEventContent content = new LiederRewardEventContent(
+                "LIEDER_OPTIMIZED",
                 DEFAULT_ALPHA,
                 DEFAULT_THETA,
                 DEFAULT_MAX_POINTS,
@@ -159,5 +158,11 @@ public class LiederGamificationService {
                 calculatedDelta,
                 appliedDelta
         );
+
+        try {
+            return objectMapper.writeValueAsString(content);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Failed to serialize reward content", exception);
+        }
     }
 }
