@@ -41,6 +41,13 @@ public class UserActionHistoryRepository {
             limit :limit
             """;
 
+    private static final String COUNT_EVENTS_BY_USER_ID_AND_TYPE_QUERY = """
+            select count(*)
+            from user_action_history
+            where user_id = :userId
+              and event_type = :eventType
+            """;
+
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public void addEvent(long userId, String eventType, String contentJson, long pointsDifference) {
@@ -67,6 +74,17 @@ public class UserActionHistoryRepository {
                         rs.getLong(ColumnNames.POINTS_DIFFERENCE)
                 )
         );
+    }
+
+    public long countByUserIdAndEventType(long userId, String eventType) {
+        Long count = namedParameterJdbcTemplate.queryForObject(
+                COUNT_EVENTS_BY_USER_ID_AND_TYPE_QUERY,
+                new MapSqlParameterSource()
+                        .addValue(ParameterNames.USER_ID, userId)
+                        .addValue(ParameterNames.EVENT_TYPE, eventType),
+                Long.class
+        );
+        return count == null ? 0L : count;
     }
 
 }
