@@ -46,6 +46,8 @@ public final class ParameterNames {
 
     public static final String USER_ID = "userId";
 
+    public static final String USER_IDS = "userIds";
+
     public static final String LEVEL_ID = "levelId";
 
     public static final String ECO_TASK_ID = "ecoTaskId";
@@ -65,5 +67,9 @@ public final class ParameterNames {
     public static final String CONTENT = "content";
 
     public static final String POINTS_DIFFERENCE = "pointsDifference";
+
+    public static final String ACHIEVEMENT_ID = "achievementId";
+
+    public static final String SINCE = "since";
 
 }

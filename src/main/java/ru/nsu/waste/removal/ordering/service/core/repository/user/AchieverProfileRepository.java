@@ -37,8 +37,8 @@ public class AchieverProfileRepository {
                 FIND_LEVEL_TARGET_FOR_UPDATE_QUERY,
                 new MapSqlParameterSource(ParameterNames.USER_ID, userId),
                 (rs, rowNum) -> new AchieverLevelTarget(
-                        rs.getLong("user_id"),
-                        rs.getInt("level_id"),
+                        rs.getLong(ColumnNames.USER_ID),
+                        rs.getInt(ColumnNames.LEVEL_ID),
                         rs.getInt(ColumnNames.REQUIRED_TOTAL_POINTS)
                 )
         ).stream().findFirst();

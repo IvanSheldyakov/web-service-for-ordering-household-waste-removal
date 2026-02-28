@@ -6,13 +6,18 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
+import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryEvent;
 import ru.nsu.waste.removal.ordering.service.core.model.level.AchieverLevelTarget;
 import ru.nsu.waste.removal.ordering.service.core.model.level.Level;
 import ru.nsu.waste.removal.ordering.service.core.model.event.LevelUpEventContent;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.level.LevelRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.AchieverProfileRepository;
+import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -22,7 +27,70 @@ public class LevelService {
     private final AchieverProfileRepository achieverProfileRepository;
     private final LevelRepository levelRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
+    private final UserInfoRepository userInfoRepository;
     private final ObjectMapper objectMapper;
+    private final ThreadLocal<Map<Long, Long>> rollingTotalsByUser = new ThreadLocal<>();
+
+    public void prepareBatch(List<UserActionHistoryEvent> events) {
+        Map<Long, Long> positivePointsByUser = new HashMap<>();
+        for (UserActionHistoryEvent event : events) {
+            if (event.eventType() == UserActionEventType.LEVEL_UP
+                    || event.eventType() == UserActionEventType.ACHIEVEMENT_UNLOCKED) {
+                continue;
+            }
+
+            long positiveDelta = Math.max(0L, event.pointsDifference());
+            if (positiveDelta == 0L) {
+                continue;
+            }
+            positivePointsByUser.merge(event.userId(), positiveDelta, Long::sum);
+        }
+
+        if (positivePointsByUser.isEmpty()) {
+            rollingTotalsByUser.set(Map.of());
+            return;
+        }
+
+        Map<Long, Long> currentTotalsByUser = userInfoRepository.findTotalPointsByUserIds(
+                List.copyOf(positivePointsByUser.keySet())
+        );
+
+        Map<Long, Long> initialRollingTotals = new HashMap<>();
+        for (Map.Entry<Long, Long> entry : positivePointsByUser.entrySet()) {
+            long userId = entry.getKey();
+            long positiveSumInBatch = entry.getValue();
+            long currentTotal = currentTotalsByUser.getOrDefault(userId, 0L);
+            initialRollingTotals.put(userId, Math.max(0L, currentTotal - positiveSumInBatch));
+        }
+        rollingTotalsByUser.set(initialRollingTotals);
+    }
+
+    public void clearBatch() {
+        rollingTotalsByUser.remove();
+    }
+
+    public void processUserAction(UserActionHistoryEvent event) {
+        if (event.eventType() == UserActionEventType.LEVEL_UP
+                || event.eventType() == UserActionEventType.ACHIEVEMENT_UNLOCKED) {
+            return;
+        }
+
+        long positiveDelta = Math.max(0L, event.pointsDifference());
+        if (positiveDelta == 0L) {
+            return;
+        }
+
+        Map<Long, Long> rollingTotals = rollingTotalsByUser.get();
+        if (rollingTotals == null) {
+            rollingTotals = new HashMap<>();
+            rollingTotalsByUser.set(rollingTotals);
+        }
+
+        long oldTotalPoints = rollingTotals.getOrDefault(event.userId(), 0L);
+        long newTotalPoints = oldTotalPoints + positiveDelta;
+        rollingTotals.put(event.userId(), newTotalPoints);
+        updateLevelIfNeeded(event.userId(), oldTotalPoints, newTotalPoints);
+    }
 
     @Transactional
     public void updateLevelIfNeeded(long userId, long oldTotalPoints, long newTotalPoints) {

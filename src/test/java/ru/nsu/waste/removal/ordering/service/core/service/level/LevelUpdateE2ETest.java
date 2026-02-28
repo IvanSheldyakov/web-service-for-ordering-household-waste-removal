@@ -19,6 +19,7 @@ import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
 import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.reward.RewardApplicationResult;
+import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventProcessorService;
 import ru.nsu.waste.removal.ordering.service.core.service.registration.RegistrationService;
 import ru.nsu.waste.removal.ordering.service.core.service.reward.LiederGamificationService;
 
@@ -30,7 +31,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(properties = "app.jobs.user-action-event-processor.enabled=false")
 @Tag("e2e")
 @Testcontainers
 class LevelUpdateE2ETest {
@@ -60,12 +61,16 @@ class LevelUpdateE2ETest {
     private LiederGamificationService liederGamificationService;
 
     @Autowired
+    private UserActionEventProcessorService userActionEventProcessorService;
+
+    @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void resetRuntimeData() {
         jdbcTemplate.execute("""
                 truncate table
+                    event_processor_state,
                     user_action_history,
                     user_eco_task,
                     achiever_profile,
@@ -91,10 +96,14 @@ class LevelUpdateE2ETest {
                 UserActionEventType.SEPARATE_CHOSEN,
                 true
         );
+        userActionEventProcessorService.processPendingEvents();
+        userActionEventProcessorService.processPendingEvents();
 
         assertTrue(rewardResult.appliedPointsDelta() > 0);
         assertEquals(2, getCurrentLevelId(userId));
         assertEquals(1, countLevelUpEvents(userId));
+        assertEquals(1, countUserAchievementsByCode(userId, "ACH_LEVEL_UP"));
+        assertEquals(1, countAchievementUnlockedEvents(userId));
 
         Map<String, Object> event = findLatestLevelUpEvent(userId);
         assertEquals(1L, asLong(event.get("from_level_id")));
@@ -123,10 +132,14 @@ class LevelUpdateE2ETest {
                 UserActionEventType.SEPARATE_CHOSEN,
                 true
         );
+        userActionEventProcessorService.processPendingEvents();
+        userActionEventProcessorService.processPendingEvents();
 
         assertTrue(firstReward.appliedPointsDelta() > 0);
         assertEquals(5, getCurrentLevelId(userId));
         assertEquals(1, countLevelUpEvents(userId));
+        assertEquals(1, countUserAchievementsByCode(userId, "ACH_LEVEL_UP"));
+        assertEquals(1, countAchievementUnlockedEvents(userId));
 
         Map<String, Object> firstEvent = findLatestLevelUpEvent(userId);
         assertEquals(5L, asLong(firstEvent.get("from_level_id")));
@@ -138,8 +151,12 @@ class LevelUpdateE2ETest {
         assertEquals(Boolean.TRUE, firstEvent.get("max_reached"));
 
         liederGamificationService.apply(userId, UserActionEventType.SEPARATE_CHOSEN, true);
+        userActionEventProcessorService.processPendingEvents();
+        userActionEventProcessorService.processPendingEvents();
 
         assertEquals(1, countLevelUpEvents(userId));
+        assertEquals(1, countUserAchievementsByCode(userId, "ACH_LEVEL_UP"));
+        assertEquals(1, countAchievementUnlockedEvents(userId));
     }
 
     private long registerAchiever(String phone) {
@@ -164,6 +181,31 @@ class LevelUpdateE2ETest {
                 "select count(*) from user_action_history where user_id = ? and event_type = 'LEVEL_UP'",
                 Integer.class,
                 userId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countAchievementUnlockedEvents(long userId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "select count(*) from user_action_history where user_id = ? and event_type = 'ACHIEVEMENT_UNLOCKED'",
+                Integer.class,
+                userId
+        );
+        return count == null ? 0 : count;
+    }
+
+    private int countUserAchievementsByCode(long userId, String achievementCode) {
+        Integer count = jdbcTemplate.queryForObject(
+                """
+                        select count(*)
+                        from achievement_user au
+                                 join achievement a on a.id = au.achievement_id
+                        where au.user_id = ?
+                          and a.code = ?
+                        """,
+                Integer.class,
+                userId,
+                achievementCode
         );
         return count == null ? 0 : count;
     }

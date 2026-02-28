@@ -12,7 +12,6 @@ import ru.nsu.waste.removal.ordering.service.core.model.reward.RewardApplication
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserRewardState;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
-import ru.nsu.waste.removal.ordering.service.core.service.level.LevelService;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +39,6 @@ public class LiederGamificationService {
     private final UserInfoRepository userInfoRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
     private final ObjectMapper objectMapper;
-    private final LevelService levelService;
 
     /**
      * Применить оптимизированную награду (модель Лидера) к пользователю.
@@ -95,10 +93,6 @@ public class LiederGamificationService {
         );
         userActionHistoryRepository.addEvent(userId, eventType.dbName(), contentJson, appliedDelta);
 
-        if (appliedDelta > 0) {
-            levelService.updateLevelIfNeeded(userId, state.totalPoints(), newTotalPoints);
-        }
-
         return new RewardApplicationResult(
                 userId,
                 eventType,
@@ -145,7 +139,6 @@ public class LiederGamificationService {
             long calculatedDelta,
             long appliedDelta
     ) {
-        // content можно расширять (например, id заказа/эко-задания и т.д.)
         LiederRewardEventContent content = new LiederRewardEventContent(
                 "LIEDER_OPTIMIZED",
                 DEFAULT_ALPHA,

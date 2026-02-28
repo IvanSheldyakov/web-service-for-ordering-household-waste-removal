@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@SpringBootTest
+@SpringBootTest(properties = "app.jobs.user-action-event-processor.enabled=false")
 @Tag("e2e")
 @Testcontainers
 class RegistrationServiceTest {

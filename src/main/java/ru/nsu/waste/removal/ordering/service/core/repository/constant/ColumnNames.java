@@ -64,6 +64,16 @@ public final class ColumnNames {
 
     public static final String CURRENT_POINTS = "current_points";
 
+    public static final String USER_ID = "user_id";
+
+    public static final String LEVEL_ID = "level_id";
+
+    public static final String EVENT_TYPE = "event_type";
+
+    public static final String POINTS_DIFFERENCE = "points_difference";
+
+    public static final String RANK_POSITION = "rank_position";
+
     public static final String ECO_TASK_ID = "eco_task_id";
 
     public static final String POINTS = "points";

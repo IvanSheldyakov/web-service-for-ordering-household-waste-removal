@@ -1,5 +1,7 @@
 package ru.nsu.waste.removal.ordering.service.core.model.event;
 
+import java.util.Locale;
+
 public enum UserActionEventType {
     ORDER_DONE,
     ORDER_CREATED,
@@ -14,5 +16,9 @@ public enum UserActionEventType {
 
     public String dbName() {
         return name();
+    }
+
+    public static UserActionEventType fromDbName(String value) {
+        return UserActionEventType.valueOf(value.trim().toUpperCase(Locale.ROOT));
     }
 }
