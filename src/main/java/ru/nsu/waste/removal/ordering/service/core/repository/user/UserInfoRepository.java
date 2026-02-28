@@ -10,6 +10,9 @@ import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Repository
@@ -62,6 +65,13 @@ public class UserInfoRepository {
             from user_info ui
             where ui.id = :userId
             for update
+            """;
+
+    private static final String FIND_TOTAL_POINTS_BY_USER_IDS_QUERY = """
+            select id,
+                   total_points
+            from user_info
+            where id in (:userIds)
             """;
 
     private static final String UPDATE_REWARD_STATE_QUERY = """
@@ -139,5 +149,23 @@ public class UserInfoRepository {
                         .addValue(ParameterNames.CURRENT_POINTS, currentPoints)
                         .addValue(ParameterNames.HABIT_STRENGTH, habitStrength)
         );
+    }
+
+    public Map<Long, Long> findTotalPointsByUserIds(List<Long> userIds) {
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Map.Entry<Long, Long>> rows = namedParameterJdbcTemplate.query(
+                FIND_TOTAL_POINTS_BY_USER_IDS_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_IDS, userIds),
+                (rs, rowNum) -> Map.entry(rs.getLong(ColumnNames.ID), rs.getLong(ColumnNames.TOTAL_POINTS))
+        );
+
+        Map<Long, Long> totalsByUserId = new HashMap<>();
+        for (Map.Entry<Long, Long> row : rows) {
+            totalsByUserId.put(row.getKey(), row.getValue());
+        }
+        return totalsByUserId;
     }
 }
