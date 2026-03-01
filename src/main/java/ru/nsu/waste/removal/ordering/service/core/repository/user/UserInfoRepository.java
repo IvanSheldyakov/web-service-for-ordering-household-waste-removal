@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserGreenSlotContext;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserProfileInfo;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserRewardState;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
@@ -84,6 +85,15 @@ public class UserInfoRepository {
             select type_id
             from user_info
             where id = :userId
+            """;
+
+    private static final String FIND_GREEN_SLOT_CONTEXT_BY_USER_ID_QUERY = """
+            select ui.id,
+                   a.postal_code,
+                   a.timezone
+            from user_info ui
+                     join address a on a.id = ui.address_id
+            where ui.id = :userId
             """;
 
     private static final String UPDATE_REWARD_STATE_QUERY = """
@@ -194,6 +204,18 @@ public class UserInfoRepository {
                 FIND_USER_TYPE_BY_USER_ID_QUERY,
                 new MapSqlParameterSource(ParameterNames.USER_ID, userId),
                 (rs, rowNum) -> UserType.fromId(rs.getInt(ColumnNames.TYPE_ID))
+        ).stream().findFirst();
+    }
+
+    public Optional<UserGreenSlotContext> findGreenSlotContextByUserId(long userId) {
+        return namedParameterJdbcTemplate.query(
+                FIND_GREEN_SLOT_CONTEXT_BY_USER_ID_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_ID, userId),
+                (rs, rowNum) -> new UserGreenSlotContext(
+                        rs.getLong(ColumnNames.ID),
+                        rs.getString(ColumnNames.POSTAL_CODE),
+                        rs.getString(ColumnNames.TIMEZONE)
+                )
         ).stream().findFirst();
     }
 }
