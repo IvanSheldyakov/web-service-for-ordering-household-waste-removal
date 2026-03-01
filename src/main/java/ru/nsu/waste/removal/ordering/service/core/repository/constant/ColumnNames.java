@@ -108,6 +108,10 @@ public final class ColumnNames {
 
     public static final String ORDER_CREATED_AT = "order_created_at";
 
+    public static final String PICKUP_FROM = "pickup_from";
+
+    public static final String PICKUP_TO = "pickup_to";
+
     public static final String FRACTION_ID = "fraction_id";
 
     public static final String PERIOD = "period";
