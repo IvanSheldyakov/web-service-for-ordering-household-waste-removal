@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Главная пользователя</title>
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header('Главная страница пользователя')}"></div>
+<main class="app-shell">
+    <section class="card top-panel">
+        <div>
+            <h2>Баланс</h2>
+            <p><strong>Текущий баланс:</strong> <span th:text="${home.currentPoints}">0</span> баллов</p>
+            <p><strong>Всего накоплено:</strong> <span th:text="${home.totalPoints}">0</span> баллов</p>
+        </div>
+        <a class="button-link" th:href="@{/user/{userId}/order/create(userId=${home.userId})}">Создать заявку на вывоз</a>
+    </section>
+
+    <section class="card">
+        <h2>Активные заявки</h2>
+
+        <p th:if="${#lists.isEmpty(home.activeOrders)}">У вас нет активных заявок</p>
+
+        <div class="order-list" th:unless="${#lists.isEmpty(home.activeOrders)}">
+            <article class="order-card" th:each="order : ${home.activeOrders}">
+                <h3>Заявка #<span th:text="${order.orderId}">1</span></h3>
+                <p><strong>Тип вывоза:</strong> <span th:text="${order.type == 'SEPARATE' ? 'Раздельный' : 'Смешанный'}">Смешанный</span></p>
+                <p>
+                    <strong>Время обслуживания:</strong>
+                    <span th:text="${#temporals.format(order.pickupFrom, 'yyyy-MM-dd HH:mm')}">2026-03-01 10:00</span>
+                    -
+                    <span th:text="${#temporals.format(order.pickupTo, 'yyyy-MM-dd HH:mm')}">2026-03-01 12:00</span>
+                </p>
+                <p><strong>Статус:</strong> <span th:text="${order.status}">NEW</span></p>
+
+                <p th:if="${order.type == 'SEPARATE' and #lists.isEmpty(order.fractions)}">
+                    <strong>Фракции:</strong> Фракции не выбраны
+                </p>
+                <p th:if="${order.type == 'SEPARATE' and !#lists.isEmpty(order.fractions)}">
+                    <strong>Фракции:</strong> <span th:text="${#strings.listJoin(order.fractions, ', ')}">Бумага, Пластик</span>
+                </p>
+            </article>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Мотивационный блок</h2>
+
+        <div th:if="${home.userType == 'ACHIEVER' and home.motivation.achiever != null}">
+            <p><strong>Текущий уровень:</strong> <span th:text="${home.motivation.achiever.levelId}">1</span></p>
+            <div class="progress">
+                <div class="progress-bar" th:style="'width:' + ${home.motivation.achiever.progressPercent} + '%'"> </div>
+            </div>
+
+            <p th:if="${home.motivation.achiever.maxLevelReached}">Максимальный уровень достигнут</p>
+            <p th:unless="${home.motivation.achiever.maxLevelReached}">
+                До следующего уровня нужно: <span th:text="${home.motivation.achiever.nextRequiredPoints}">2000</span>.
+                Осталось: <span th:text="${home.motivation.achiever.remaining}">500</span> баллов.
+            </p>
+        </div>
+
+        <div th:if="${home.userType == 'SOCIALIZER' and home.motivation.socializer != null}">
+            <p>
+                Ваше место в рейтинге района за 7 дней:
+                <strong th:text="${home.motivation.socializer.weeklyRankPosition != null ? '#' + home.motivation.socializer.weeklyRankPosition : '—'}">—</strong>
+            </p>
+        </div>
+
+        <div th:if="${home.userType == 'EXPLORER' and home.motivation.explorer != null}">
+            <p>Подборка карточек для вас:</p>
+            <p th:if="${#lists.isEmpty(home.motivation.explorer.cards)}">Карточки пока недоступны</p>
+            <div class="card-grid" th:unless="${#lists.isEmpty(home.motivation.explorer.cards)}">
+                <article class="info-card" th:each="card : ${home.motivation.explorer.cards}">
+                    <h3 th:text="${card.title}">Заголовок</h3>
+                    <p th:text="${card.description}">Описание</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Разделы</h2>
+        <nav class="link-row">
+            <a th:href="@{/user/{userId}/eco-dashboard(userId=${home.userId})}">Дашборд экологического прогресса</a>
+            <a th:href="@{/user/{userId}/history(userId=${home.userId})}">История действий</a>
+        </nav>
+    </section>
+</main>
+</body>
+</html>
+

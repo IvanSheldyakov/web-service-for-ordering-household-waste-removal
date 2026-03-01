@@ -4,8 +4,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.nsu.waste.removal.ordering.service.core.model.order.ActiveOrderInfo;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderFiltersInPeriod;
+import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
+
+import java.sql.Array;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 @Repository
 @RequiredArgsConstructor
@@ -43,6 +50,28 @@ public class OrderInfoRepository {
             where oi.user_id = :userId
               and oi.status = 'DONE'
               and oi.type = 'SEPARATE'
+            """;
+
+    private static final String FIND_ACTIVE_ORDERS_BY_USER_ID_QUERY = """
+            select oi.id,
+                   oi.type,
+                   oi.status,
+                   oi.pickup_from,
+                   oi.pickup_to,
+                   coalesce(
+                           array_agg(wf.name order by wf.name) filter ( where wf.name is not null ),
+                           '{}'::text[]
+                   ) as fractions
+            from order_info oi
+                     left join order_waste_fraction owf
+                               on owf.order_id = oi.id
+                                   and owf.order_created_at = oi.created_at
+                     left join waste_fraction wf on wf.id = owf.fraction_id
+            where oi.user_id = :userId
+              and oi.status in ('NEW', 'ASSIGNED')
+            group by oi.id, oi.created_at, oi.type, oi.status, oi.pickup_from, oi.pickup_to
+            order by oi.pickup_from asc
+            limit :limit
             """;
 
     private static final String COUNT_ORDERS_BY_FILTERS_IN_PERIOD_QUERY = """
@@ -106,6 +135,47 @@ public class OrderInfoRepository {
                 Long.class
         );
         return count == null ? 0L : count;
+    }
+
+    public List<ActiveOrderInfo> findActiveOrdersByUserId(long userId, int limit) {
+        return namedParameterJdbcTemplate.query(
+                FIND_ACTIVE_ORDERS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource()
+                        .addValue(ParameterNames.USER_ID, userId)
+                        .addValue(ParameterNames.LIMIT, limit),
+                (rs, rowNum) -> {
+                    Array fractionsArray = rs.getArray(ColumnNames.FRACTIONS);
+                    List<String> fractions;
+                    if (fractionsArray == null) {
+                        fractions = List.of();
+                    } else {
+                        Object rawArray = fractionsArray.getArray();
+                        fractionsArray.free();
+
+                        if (rawArray instanceof String[] value) {
+                            fractions = Arrays.stream(value)
+                                    .filter(Objects::nonNull)
+                                    .toList();
+                        } else if (rawArray instanceof Object[] value) {
+                            fractions = Arrays.stream(value)
+                                    .filter(Objects::nonNull)
+                                    .map(String::valueOf)
+                                    .toList();
+                        } else {
+                            fractions = List.of();
+                        }
+                    }
+
+                    return new ActiveOrderInfo(
+                            rs.getLong(ColumnNames.ID),
+                            rs.getString(ColumnNames.TYPE),
+                            rs.getString(ColumnNames.STATUS),
+                            rs.getObject(ColumnNames.PICKUP_FROM, java.time.OffsetDateTime.class),
+                            rs.getObject(ColumnNames.PICKUP_TO, java.time.OffsetDateTime.class),
+                            fractions
+                    );
+                }
+        );
     }
 
     public long countOrdersByFiltersInPeriod(OrderFiltersInPeriod filters) {

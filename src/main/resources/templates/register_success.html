@@ -17,6 +17,7 @@
             всего: <span th:text="${result.balances.totalPoints}">0</span>,
             текущий: <span th:text="${result.balances.currentPoints}">0</span>
         </p>
+        <p><a th:href="@{/user/{userId}/home(userId=${result.userId})}">Перейти на главную</a></p>
     </section>
 
     <section class="card">
@@ -73,3 +74,4 @@
 </main>
 </body>
 </html>
+
