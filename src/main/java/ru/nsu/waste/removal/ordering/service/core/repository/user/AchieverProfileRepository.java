@@ -30,6 +30,13 @@ public class AchieverProfileRepository {
             where user_id = :userId
             """;
 
+    private static final String FIND_CURRENT_LEVEL_ID_QUERY = """
+            select ap.level_id
+            from achiever_profile ap
+                     join level l on l.id = ap.level_id
+            where ap.user_id = :userId
+            """;
+
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public Optional<AchieverLevelTarget> findLevelTargetForUpdate(long userId) {
@@ -51,5 +58,13 @@ public class AchieverProfileRepository {
                         .addValue(ParameterNames.USER_ID, userId)
                         .addValue(ParameterNames.LEVEL_ID, levelId)
         );
+    }
+
+    public Optional<Integer> findCurrentLevelId(long userId) {
+        return namedParameterJdbcTemplate.query(
+                FIND_CURRENT_LEVEL_ID_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_ID, userId),
+                (rs, rowNum) -> rs.getInt(ColumnNames.LEVEL_ID)
+        ).stream().findFirst();
     }
 }

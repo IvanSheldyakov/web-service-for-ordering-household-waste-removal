@@ -21,4 +21,8 @@ public final class AttributeNames {
     public static final String RESULT = "result";
 
     public static final String PHONE_CONFLICT_MESSAGE = "phoneConflictMessage";
+
+    public static final String HOME = "home";
+
+    public static final String USER_ID = "userId";
 }

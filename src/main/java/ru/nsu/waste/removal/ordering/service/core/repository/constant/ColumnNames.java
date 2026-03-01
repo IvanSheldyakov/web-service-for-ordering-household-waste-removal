@@ -114,6 +114,8 @@ public final class ColumnNames {
 
     public static final String FRACTION_ID = "fraction_id";
 
+    public static final String FRACTIONS = "fractions";
+
     public static final String PERIOD = "period";
 
     public static final String EXPIRED_AT = "expired_at";
