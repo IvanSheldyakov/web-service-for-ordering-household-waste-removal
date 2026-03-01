@@ -4,6 +4,7 @@ public record UserActionHistoryEvent(
         long id,
         long userId,
         UserActionEventType eventType,
-        long pointsDifference
+        long pointsDifference,
+        String content
 ) {
 }

@@ -70,6 +70,8 @@ public final class ColumnNames {
 
     public static final String EVENT_TYPE = "event_type";
 
+    public static final String CONTENT = "content";
+
     public static final String POINTS_DIFFERENCE = "points_difference";
 
     public static final String RANK_POSITION = "rank_position";
@@ -77,6 +79,36 @@ public final class ColumnNames {
     public static final String ECO_TASK_ID = "eco_task_id";
 
     public static final String POINTS = "points";
+
+    public static final String TARGET = "target";
+
+    public static final String RULE_TYPE = "rule_type";
+
+    public static final String ORDER_TYPE_FILTER = "order_type_filter";
+
+    public static final String ORDER_STATUS_FILTER = "order_status_filter";
+
+    public static final String GREEN_CHOSEN_FILTER = "green_chosen_filter";
+
+    public static final String ACTION_EVENT_TYPE_FILTER = "action_event_type_filter";
+
+    public static final String USER_ECO_TASK_ID = "user_eco_task_id";
+
+    public static final String TRIGGER_EVENT = "trigger_event";
+
+    public static final String ASSIGNED_AT = "assigned_at";
+
+    public static final String STATUS = "status";
+
+    public static final String TYPE = "type";
+
+    public static final String GREEN_CHOSEN = "green_chosen";
+
+    public static final String CREATED_AT = "created_at";
+
+    public static final String ORDER_CREATED_AT = "order_created_at";
+
+    public static final String FRACTION_ID = "fraction_id";
 
     public static final String PERIOD = "period";
 

@@ -2,6 +2,7 @@ package ru.nsu.waste.removal.ordering.service.core.service.order;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.nsu.waste.removal.ordering.service.core.model.order.OrderFiltersInPeriod;
 import ru.nsu.waste.removal.ordering.service.core.repository.order.OrderInfoRepository;
 
 @Service
@@ -24,5 +25,13 @@ public class OrderInfoService {
 
     public long countDistinctFractionsInDoneSeparateOrders(long userId) {
         return orderInfoRepository.countDistinctFractionsInDoneSeparateOrders(userId);
+    }
+
+    public long countOrdersByFiltersInPeriod(OrderFiltersInPeriod filters) {
+        return orderInfoRepository.countOrdersByFiltersInPeriod(filters);
+    }
+
+    public long countDistinctFractionsByFiltersInPeriod(OrderFiltersInPeriod filters) {
+        return orderInfoRepository.countDistinctFractionsByFiltersInPeriod(filters);
     }
 }

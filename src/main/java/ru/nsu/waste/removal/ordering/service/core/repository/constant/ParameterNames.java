@@ -52,7 +52,27 @@ public final class ParameterNames {
 
     public static final String ECO_TASK_ID = "ecoTaskId";
 
+    public static final String USER_ECO_TASK_ID = "userEcoTaskId";
+
     public static final String EXPIRED_AT = "expiredAt";
+
+    public static final String ASSIGNED_AT = "assignedAt";
+
+    public static final String FROM = "from";
+
+    public static final String TO = "to";
+
+    public static final String NOW = "now";
+
+    public static final String STATUS = "status";
+
+    public static final String ASSIGNED_STATUS = "assignedStatus";
+
+    public static final String TYPE = "type";
+
+    public static final String GREEN_CHOSEN = "greenChosen";
+
+    public static final String TRIGGER_EVENT = "triggerEvent";
 
     public static final String ID = "id";
 

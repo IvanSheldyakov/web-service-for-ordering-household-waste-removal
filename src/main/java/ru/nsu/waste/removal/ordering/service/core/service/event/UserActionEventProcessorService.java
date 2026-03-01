@@ -2,15 +2,11 @@ package ru.nsu.waste.removal.ordering.service.core.service.event;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryEvent;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.EventProcessorStateRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
-import ru.nsu.waste.removal.ordering.service.core.service.achievement.AchievementService;
-import ru.nsu.waste.removal.ordering.service.core.service.level.LevelService;
 
 import java.util.List;
 
@@ -24,8 +20,7 @@ public class UserActionEventProcessorService {
 
     private final UserActionHistoryRepository userActionHistoryRepository;
     private final EventProcessorStateRepository eventProcessorStateRepository;
-    private final AchievementService achievementService;
-    private final LevelService levelService;
+    private final List<UserActionEventHandler> eventHandlers;
 
     @Transactional
     public int processPendingEvents() {
@@ -36,23 +31,22 @@ public class UserActionEventProcessorService {
             return 0;
         }
 
-        levelService.prepareBatch(events);
         int processed = 0;
-        try {
-            for (UserActionHistoryEvent event : events) {
-                try {
-                    achievementService.processUserAction(event.userId(), event.eventType());
-                    levelService.processUserAction(event);
-                } catch (Exception exception) {
-                    log.error("Failed to process user action event id={}, userId={}, type={}",
-                            event.id(), event.userId(), event.eventType(), exception);
-                } finally {
-                    eventProcessorStateRepository.updateLastEventId(PROCESSOR_NAME, event.id());
+        for (UserActionHistoryEvent event : events) {
+            try {
+                for (UserActionEventHandler handler : eventHandlers) {
+                    if (!handler.supports(event)) {
+                        continue;
+                    }
+                    handler.handle(event);
                 }
-                processed++;
+            } catch (Exception exception) {
+                log.error("Failed to process user action event id={}, userId={}, type={}",
+                        event.id(), event.userId(), event.eventType(), exception);
+            } finally {
+                eventProcessorStateRepository.updateLastEventId(PROCESSOR_NAME, event.id());
             }
-        } finally {
-            levelService.clearBatch();
+            processed++;
         }
 
         return processed;

@@ -74,6 +74,12 @@ public class UserInfoRepository {
             where id in (:userIds)
             """;
 
+    private static final String FIND_TOTAL_POINTS_BY_USER_ID_QUERY = """
+            select total_points
+            from user_info
+            where id = :userId
+            """;
+
     private static final String FIND_USER_TYPE_BY_USER_ID_QUERY = """
             select type_id
             from user_info
@@ -173,6 +179,14 @@ public class UserInfoRepository {
             totalsByUserId.put(row.getKey(), row.getValue());
         }
         return totalsByUserId;
+    }
+
+    public Optional<Long> findTotalPointsByUserId(long userId) {
+        return namedParameterJdbcTemplate.query(
+                FIND_TOTAL_POINTS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_ID, userId),
+                (rs, rowNum) -> rs.getLong(ColumnNames.TOTAL_POINTS)
+        ).stream().findFirst();
     }
 
     public Optional<UserType> findUserTypeByUserId(long userId) {
