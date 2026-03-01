@@ -1,34 +1,27 @@
 package ru.nsu.waste.removal.ordering.service.core.service.reward;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import ru.nsu.waste.removal.ordering.service.core.model.event.LiederRewardEventContent;
+import ru.nsu.waste.removal.ordering.service.core.model.event.LiederRewardRequestEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
-import ru.nsu.waste.removal.ordering.service.core.model.reward.RewardApplicationResult;
+import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryEvent;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserRewardState;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
+import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventHandler;
 
 @Service
+@Order(15)
 @RequiredArgsConstructor
-public class LiederGamificationService {
+public class LiederGamificationService implements UserActionEventHandler {
 
-    /**
-     * В БД habit_strength хранится как long, поэтому используем fixed-point шкалу.
-     * 1_000_000 = точность до 6 знаков после запятой.
-     */
     private static final long HABIT_STRENGTH_SCALE = 1_000_000L;
-
-    /**
-     * Параметры по умолчанию для MVP.
-     * <p>
-     * alpha=0.10 и theta=0.90 — типовые значения из статьи.
-     * M (maxPoints) масштабируем под экономику баллов в проекте.
-     */
     private static final double DEFAULT_ALPHA = 0.10;
     private static final double DEFAULT_THETA = 0.90;
     private static final int DEFAULT_MAX_POINTS = 50;
@@ -40,29 +33,25 @@ public class LiederGamificationService {
     private final UserActionHistoryRepository userActionHistoryRepository;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Применить оптимизированную награду (модель Лидера) к пользователю.
-     * <p>
-     * Когда вызывать:
-     * - SEPARATE_CHOSEN: пользователь выбрал раздельный вывоз
-     * - GREEN_SLOT_CHOSEN: пользователь выбрал "зелёный" слот
-     * - ECO_TASK_COMPLETED: пользователь выполнил эко-задание
-     */
-    @Transactional
-    public RewardApplicationResult apply(long userId, UserActionEventType eventType, boolean success) {
-        UserRewardState state = userInfoRepository.findRewardStateForUpdate(userId)
+    @Override
+    public boolean supports(UserActionHistoryEvent event) {
+        return event.pointsDifference() == 0L && isSupportedRewardEventType(event.eventType());
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handle(UserActionHistoryEvent event) {
+        boolean success = extractSuccess(event.content());
+
+        UserRewardState state = userInfoRepository.findRewardStateForUpdate(event.userId())
                 .orElseThrow(() -> new IllegalStateException(
-                        "Пользователь с id = %s не найден".formatted(userId)
+                        "User with id = %s is not found".formatted(event.userId())
                 ));
 
         double oldStrength = fromDbStrength(state.habitStrength());
-
         LiederOptimizedRewardCalculator.StepResult step = CALCULATOR.step(oldStrength, success);
 
         long calculatedDelta = step.pointsDelta();
-
-        // total_points — накопленный вклад (обычно не уменьшаем)
-        // current_points — текущий баланс (может уменьшаться, но не < 0)
         long newTotalPoints = state.totalPoints();
         long newCurrentPoints = state.currentPoints();
         long appliedDelta;
@@ -81,9 +70,9 @@ public class LiederGamificationService {
         }
 
         long newHabitStrength = toDbStrength(step.newStrength());
-        userInfoRepository.updateRewardState(userId, newTotalPoints, newCurrentPoints, newHabitStrength);
+        userInfoRepository.updateRewardState(event.userId(), newTotalPoints, newCurrentPoints, newHabitStrength);
 
-        String contentJson = buildContentJson(
+        String rewardContentJson = buildRewardContentJson(
                 success,
                 oldStrength,
                 step.newStrength(),
@@ -91,17 +80,11 @@ public class LiederGamificationService {
                 calculatedDelta,
                 appliedDelta
         );
-        userActionHistoryRepository.addEvent(userId, eventType.dbName(), contentJson, appliedDelta);
 
-        return new RewardApplicationResult(
-                userId,
-                eventType,
-                success,
-                appliedDelta,
-                (int) calculatedDelta,
-                newTotalPoints,
-                newCurrentPoints,
-                step.newStrength()
+        userActionHistoryRepository.updateEventRewardById(
+                event.id(),
+                rewardContentJson,
+                appliedDelta
         );
     }
 
@@ -124,14 +107,14 @@ public class LiederGamificationService {
     }
 
     private static long safeAdd(long a, long b) {
-        long r = a + b;
-        if (((a ^ r) & (b ^ r)) < 0) {
+        long result = a + b;
+        if (((a ^ result) & (b ^ result)) < 0) {
             throw new ArithmeticException("long overflow during points update");
         }
-        return r;
+        return result;
     }
 
-    private String buildContentJson(
+    private String buildRewardContentJson(
             boolean success,
             double oldStrength,
             double newStrength,
@@ -157,5 +140,23 @@ public class LiederGamificationService {
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Failed to serialize reward content", exception);
         }
+    }
+
+    private boolean extractSuccess(String contentJson) {
+        if (contentJson == null || contentJson.isBlank()) {
+            return true;
+        }
+        try {
+            LiederRewardRequestEventContent content =
+                    objectMapper.readValue(contentJson, LiederRewardRequestEventContent.class);
+            return content.success();
+        } catch (Exception ignored) {
+            return true;
+        }
+    }
+
+    private boolean isSupportedRewardEventType(UserActionEventType eventType) {
+        return eventType == UserActionEventType.SEPARATE_CHOSEN
+                || eventType == UserActionEventType.GREEN_SLOT_CHOSEN;
     }
 }

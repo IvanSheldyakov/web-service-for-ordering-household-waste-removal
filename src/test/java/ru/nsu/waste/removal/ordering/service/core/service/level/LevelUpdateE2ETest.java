@@ -18,10 +18,9 @@ import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
 import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
-import ru.nsu.waste.removal.ordering.service.core.model.reward.RewardApplicationResult;
+import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventProcessorService;
 import ru.nsu.waste.removal.ordering.service.core.service.registration.RegistrationService;
-import ru.nsu.waste.removal.ordering.service.core.service.reward.LiederGamificationService;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -58,7 +57,7 @@ class LevelUpdateE2ETest {
     private RegistrationService registrationService;
 
     @Autowired
-    private LiederGamificationService liederGamificationService;
+    private UserActionHistoryRepository userActionHistoryRepository;
 
     @Autowired
     private UserActionEventProcessorService userActionEventProcessorService;
@@ -91,15 +90,11 @@ class LevelUpdateE2ETest {
                 userId
         );
 
-        RewardApplicationResult rewardResult = liederGamificationService.apply(
-                userId,
-                UserActionEventType.SEPARATE_CHOSEN,
-                true
-        );
+        addRewardTriggerEvent(userId, UserActionEventType.SEPARATE_CHOSEN, true);
         userActionEventProcessorService.processPendingEvents();
         userActionEventProcessorService.processPendingEvents();
 
-        assertTrue(rewardResult.appliedPointsDelta() > 0);
+        assertTrue(findUserTotalPoints(userId) > 999L);
         assertEquals(2, getCurrentLevelId(userId));
         assertEquals(1, countLevelUpEvents(userId));
         assertEquals(1, countUserAchievementsByCode(userId, "ACH_LEVEL_UP"));
@@ -111,7 +106,7 @@ class LevelUpdateE2ETest {
         assertEquals(1000L, asLong(event.get("from_required_total_points")));
         assertEquals(2000L, asLong(event.get("to_required_total_points")));
         assertEquals(999L, asLong(event.get("old_total_points")));
-        assertEquals(rewardResult.newTotalPoints(), asLong(event.get("new_total_points")));
+        assertEquals(findUserTotalPoints(userId), asLong(event.get("new_total_points")));
         assertEquals(Boolean.FALSE, event.get("max_reached"));
     }
 
@@ -127,15 +122,11 @@ class LevelUpdateE2ETest {
                 userId
         );
 
-        RewardApplicationResult firstReward = liederGamificationService.apply(
-                userId,
-                UserActionEventType.SEPARATE_CHOSEN,
-                true
-        );
+        addRewardTriggerEvent(userId, UserActionEventType.SEPARATE_CHOSEN, true);
         userActionEventProcessorService.processPendingEvents();
         userActionEventProcessorService.processPendingEvents();
 
-        assertTrue(firstReward.appliedPointsDelta() > 0);
+        assertTrue(findUserTotalPoints(userId) >= 5000L);
         assertEquals(5, getCurrentLevelId(userId));
         assertEquals(1, countLevelUpEvents(userId));
         assertEquals(1, countUserAchievementsByCode(userId, "ACH_LEVEL_UP"));
@@ -150,7 +141,7 @@ class LevelUpdateE2ETest {
         assertTrue(asLong(firstEvent.get("new_total_points")) >= 5000L);
         assertEquals(Boolean.TRUE, firstEvent.get("max_reached"));
 
-        liederGamificationService.apply(userId, UserActionEventType.SEPARATE_CHOSEN, true);
+        addRewardTriggerEvent(userId, UserActionEventType.SEPARATE_CHOSEN, true);
         userActionEventProcessorService.processPendingEvents();
         userActionEventProcessorService.processPendingEvents();
 
@@ -192,6 +183,24 @@ class LevelUpdateE2ETest {
                 userId
         );
         return count == null ? 0 : count;
+    }
+
+    private long findUserTotalPoints(long userId) {
+        Long totalPoints = jdbcTemplate.queryForObject(
+                "select total_points from user_info where id = ?",
+                Long.class,
+                userId
+        );
+        return totalPoints == null ? 0L : totalPoints;
+    }
+
+    private void addRewardTriggerEvent(long userId, UserActionEventType eventType, boolean success) {
+        userActionHistoryRepository.addEvent(
+                userId,
+                eventType.dbName(),
+                "{\"success\":" + success + "}",
+                0
+        );
     }
 
     private int countUserAchievementsByCode(long userId, String achievementCode) {

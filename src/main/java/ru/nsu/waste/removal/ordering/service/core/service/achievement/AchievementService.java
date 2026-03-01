@@ -3,18 +3,23 @@ package ru.nsu.waste.removal.ordering.service.core.service.achievement;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import ru.nsu.waste.removal.ordering.service.core.model.achievement.Achievement;
 import ru.nsu.waste.removal.ordering.service.core.model.achievement.AchievementCode;
 import ru.nsu.waste.removal.ordering.service.core.model.achievement.AchievementRule;
 import ru.nsu.waste.removal.ordering.service.core.model.event.AchievementUnlockedEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
+import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryEvent;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.repository.achievement.AchievementRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.achievement.AchievementUserRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserLeaderboardRepository;
+import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventHandler;
 import ru.nsu.waste.removal.ordering.service.core.service.order.OrderInfoService;
 
 import java.time.Clock;
@@ -22,8 +27,9 @@ import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
+@Order(30)
 @RequiredArgsConstructor
-public class AchievementService {
+public class AchievementService implements UserActionEventHandler {
 
     private static final int TOP_10_THRESHOLD = 10;
     private static final int TOP_3_THRESHOLD = 3;
@@ -46,7 +52,17 @@ public class AchievementService {
         return achievementRepository.findByUserType(userType);
     }
 
-    public void processUserAction(long userId, UserActionEventType eventType) {
+    @Override
+    public boolean supports(UserActionHistoryEvent event) {
+        return event.eventType() != UserActionEventType.ACHIEVEMENT_UNLOCKED;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void handle(UserActionHistoryEvent event) {
+        long userId = event.userId();
+        UserActionEventType eventType = event.eventType();
+
         if (eventType == UserActionEventType.ACHIEVEMENT_UNLOCKED) {
             return;
         }
