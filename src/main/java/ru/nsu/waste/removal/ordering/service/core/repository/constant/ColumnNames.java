@@ -121,4 +121,10 @@ public final class ColumnNames {
     public static final String EXPIRED_AT = "expired_at";
 
     public static final String HABIT_STRENGTH = "habit_strength";
+
+    public static final String ORDER_ID = "order_id";
+
+    public static final String COST_POINTS = "cost_points";
+
+    public static final String IS_ACTIVE = "is_active";
 }
