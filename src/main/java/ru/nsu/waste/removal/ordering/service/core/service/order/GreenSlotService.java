@@ -3,6 +3,7 @@ package ru.nsu.waste.removal.ordering.service.core.service.order;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.nsu.waste.removal.ordering.service.core.model.order.GreenSlot;
+import ru.nsu.waste.removal.ordering.service.core.model.order.SlotOption;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserGreenSlotContext;
 import ru.nsu.waste.removal.ordering.service.core.repository.order.GreenSlotRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
@@ -15,6 +16,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,7 +33,7 @@ public class GreenSlotService {
     private final GreenSlotRepository greenSlotRepository;
     private final Clock clock;
 
-    public List<GreenSlot> getAvailableGreenSlots(long userId) {
+    public List<SlotOption> getSlotOptions(long userId) {
         UserGreenSlotContext userContext = userInfoService.getGreenSlotContextByUserId(userId);
         ZoneId userZoneId = resolveZoneId(userContext);
         ZonedDateTime nowInUserZone = ZonedDateTime.now(clock).withZoneSameInstant(userZoneId);
@@ -56,7 +58,14 @@ public class GreenSlotService {
                 .collect(Collectors.toSet());
 
         return availableSlots.stream()
-                .filter(slot -> plannedSlotKeys.contains(SlotKey.fromSlot(slot)))
+                .map(slot -> new SlotOption(
+                        slot.pickupFrom(),
+                        slot.pickupTo(),
+                        plannedSlotKeys.contains(SlotKey.fromSlot(slot))
+                ))
+                .sorted(Comparator.comparing(SlotOption::green)
+                        .reversed()
+                        .thenComparing(SlotOption::pickupFrom))
                 .toList();
     }
 

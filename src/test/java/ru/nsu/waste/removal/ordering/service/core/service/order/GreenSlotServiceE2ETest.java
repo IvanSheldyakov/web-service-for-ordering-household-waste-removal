@@ -108,7 +108,10 @@ class GreenSlotServiceE2ETest {
         OffsetDateTime otherDistrictTomorrow16From = slotStartAt(2026, 2, 19, 16);
         addOrder(anotherDistrictUserId, SECONDARY_POSTAL_CODE, "NEW", otherDistrictTomorrow16From, otherDistrictTomorrow16From.plusHours(2), 6);
 
-        List<GreenSlot> slots = greenSlotService.getAvailableGreenSlots(currentUserId);
+        List<GreenSlot> slots = greenSlotService.getSlotOptions(currentUserId).stream()
+                .filter(slot -> slot.green())
+                .map(slot -> new GreenSlot(slot.pickupFrom(), slot.pickupTo()))
+                .toList();
 
         assertEquals(2, slots.size());
         assertEquals(today18From.toInstant(), slots.get(0).pickupFrom().toInstant());
@@ -125,7 +128,10 @@ class GreenSlotServiceE2ETest {
         long currentUserId = registerAchiever("77002220001", PRIMARY_POSTAL_CODE);
         registerAchiever("77002220002", PRIMARY_POSTAL_CODE);
 
-        List<GreenSlot> slots = greenSlotService.getAvailableGreenSlots(currentUserId);
+        List<GreenSlot> slots = greenSlotService.getSlotOptions(currentUserId).stream()
+                .filter(slot -> slot.green())
+                .map(slot -> new GreenSlot(slot.pickupFrom(), slot.pickupTo()))
+                .toList();
 
         assertTrue(slots.isEmpty());
     }
