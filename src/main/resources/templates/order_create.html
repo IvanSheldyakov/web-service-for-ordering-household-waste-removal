@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -10,11 +10,94 @@
 <div th:replace="~{fragments/layout :: header('Создание заявки на вывоз')}"></div>
 <main class="app-shell">
     <section class="card">
-        <h2>Раздел в разработке</h2>
-        <p>Экран создания заказа пока недоступен. Маршрут подготовлен без 404.</p>
-        <a th:href="@{/user/{userId}/home(userId=${userId})}">Вернуться на главную</a>
+        <h2>Новая заявка</h2>
+
+        <form class="order-create-form"
+              method="post"
+              th:action="@{/user/{userId}/order/create(userId=${userId})}"
+              th:object="${orderCreateForm}">
+            <div class="error-text" th:if="${#fields.hasGlobalErrors()}">
+                <p th:each="error : ${#fields.globalErrors()}" th:text="${error.defaultMessage}">Ошибка создания заявки</p>
+            </div>
+
+            <div class="field-group">
+                <h3>Тип вывоза</h3>
+                <div class="form-row">
+                    <label class="option-item">
+                        <input th:field="*{type}" type="radio" value="MIXED">
+                        Смешанный (обычный)
+                    </label>
+                    <label class="option-item">
+                        <input th:field="*{type}" type="radio" value="SEPARATE">
+                        Раздельный
+                    </label>
+                </div>
+                <p class="error-text" th:errors="*{type}" th:if="${#fields.hasErrors('type')}">Ошибка выбора типа</p>
+            </div>
+
+            <div class="field-group" id="fractionsSection">
+                <h3>Фракции</h3>
+                <p class="field-hint">Для раздельного вывоза выберите хотя бы одну фракцию.</p>
+                <div class="fraction-grid">
+                    <label class="option-item"
+                           th:each="fraction : ${activeFractions}"
+                           th:for="|fraction-${fraction.id}|">
+                        <input th:field="*{fractionIds}"
+                               th:id="|fraction-${fraction.id}|"
+                               th:value="${fraction.id}"
+                               type="checkbox">
+                        <span th:text="${fraction.name}">Пластик</span>
+                    </label>
+                </div>
+                <p class="error-text"
+                   th:errors="*{fractionIds}"
+                   th:if="${#fields.hasErrors('fractionIds')}">Ошибка выбора фракций</p>
+            </div>
+
+            <div class="field-group">
+                <h3>Время вывоза</h3>
+                <p class="field-hint">Показаны только доступные интервалы на сегодня и завтра.</p>
+
+                <p th:if="${#lists.isEmpty(slotOptions)}">Сейчас нет доступных интервалов. Попробуйте позже.</p>
+                <div class="slot-list" th:unless="${#lists.isEmpty(slotOptions)}">
+                    <label class="slot-item" th:each="slot : ${slotOptions}">
+                        <input th:field="*{slotKey}" th:value="${slot.key()}" type="radio">
+                        <span th:text="|${#temporals.format(slot.pickupFrom, 'yyyy-MM-dd HH:mm')} - ${#temporals.format(slot.pickupTo, 'HH:mm')}|">
+                            2026-03-02 10:00 - 12:00
+                        </span>
+                        <span class="slot-badge-green" th:if="${slot.green}">зеленый</span>
+                    </label>
+                </div>
+                <p class="error-text" th:errors="*{slotKey}" th:if="${#fields.hasErrors('slotKey')}">Ошибка выбора слота</p>
+            </div>
+
+            <div class="form-row">
+                <button class="primary-button" type="submit">Создать заявку</button>
+                <a th:href="@{/user/{userId}/home(userId=${userId})}">Вернуться на главную</a>
+            </div>
+        </form>
     </section>
 </main>
+
+<script>
+    (function () {
+        const section = document.getElementById("fractionsSection");
+        if (!section) {
+            return;
+        }
+        const radios = document.querySelectorAll("input[name='type']");
+
+        function toggleFractions() {
+            const selected = document.querySelector("input[name='type']:checked");
+            const isSeparate = selected && selected.value === "SEPARATE";
+            section.style.display = isSeparate ? "" : "none";
+        }
+
+        radios.forEach(function (radio) {
+            radio.addEventListener("change", toggleFractions);
+        });
+        toggleFractions();
+    })();
+</script>
 </body>
 </html>
-

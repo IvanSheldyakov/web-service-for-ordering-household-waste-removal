@@ -92,4 +92,18 @@ public final class ParameterNames {
 
     public static final String SINCE = "since";
 
+    public static final String PICKUP_FROM = "pickupFrom";
+
+    public static final String PICKUP_TO = "pickupTo";
+
+    public static final String COST_POINTS = "costPoints";
+
+    public static final String ORDER_ID = "orderId";
+
+    public static final String ORDER_CREATED_AT = "orderCreatedAt";
+
+    public static final String FRACTION_ID = "fractionId";
+
+    public static final String FRACTION_IDS = "fractionIds";
+
 }
