@@ -3,6 +3,7 @@ package ru.nsu.waste.removal.ordering.service.core.service.order.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderCreateParams;
+import ru.nsu.waste.removal.ordering.service.core.model.order.OrderType;
 import ru.nsu.waste.removal.ordering.service.core.model.order.SlotOption;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserGreenSlotContext;
 
@@ -16,7 +17,7 @@ public interface OrderCreateParamsMapper {
     @Mapping(target = "costPoints", source = "costPoints")
     OrderCreateParams toOrderCreateParams(
             long userId,
-            String type,
+            OrderType type,
             SlotOption selectedSlot,
             UserGreenSlotContext userContext,
             long costPoints

@@ -4,7 +4,7 @@ import java.time.OffsetDateTime;
 
 public record OrderCreateParams(
         long userId,
-        String type,
+        OrderType type,
         OffsetDateTime pickupFrom,
         OffsetDateTime pickupTo,
         boolean greenChosen,

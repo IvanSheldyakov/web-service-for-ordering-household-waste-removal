@@ -62,7 +62,7 @@ public class OrderCreateRepository {
                 CREATE_ORDER_QUERY,
                 new MapSqlParameterSource()
                         .addValue(ParameterNames.USER_ID, params.userId())
-                        .addValue(ParameterNames.TYPE, params.type())
+                        .addValue(ParameterNames.TYPE, params.type().dbName())
                         .addValue(ParameterNames.PICKUP_FROM, params.pickupFrom())
                         .addValue(ParameterNames.PICKUP_TO, params.pickupTo())
                         .addValue(ParameterNames.GREEN_CHOSEN, params.greenChosen())
