@@ -91,3 +91,81 @@ h3 {
     gap: 12px;
 }
 
+.order-create-form {
+    display: grid;
+    gap: 16px;
+}
+
+.field-group {
+    border: 1px solid #e0e8dd;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fbfdfb;
+}
+
+.field-hint {
+    margin-top: 0;
+    color: #4c624f;
+}
+
+.form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.option-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.error-text {
+    margin: 8px 0 0;
+    color: #b42318;
+    font-size: 14px;
+}
+
+.fraction-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 8px;
+}
+
+.slot-list {
+    display: grid;
+    gap: 8px;
+}
+
+.slot-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #d7e0d4;
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #ffffff;
+}
+
+.slot-badge-green {
+    margin-left: auto;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    background: #d9f2df;
+    color: #1a5c2a;
+}
+
+.primary-button {
+    border: none;
+    background: #2d6f3b;
+    color: #ffffff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+

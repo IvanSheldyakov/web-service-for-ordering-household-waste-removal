@@ -33,11 +33,5 @@ public class UserHomeController {
         model.addAttribute(AttributeNames.USER_ID, userId);
         return TemplateNames.USER_HISTORY;
     }
-
-    @GetMapping(Paths.USER_ORDER_CREATE)
-    public String getOrderCreate(@PathVariable(Paths.USER_ID) long userId, Model model) {
-        model.addAttribute(AttributeNames.USER_ID, userId);
-        return TemplateNames.ORDER_CREATE;
-    }
 }
 

@@ -25,4 +25,10 @@ public final class AttributeNames {
     public static final String HOME = "home";
 
     public static final String USER_ID = "userId";
+
+    public static final String ORDER_CREATE_FORM = "orderCreateForm";
+
+    public static final String ACTIVE_FRACTIONS = "activeFractions";
+
+    public static final String SLOT_OPTIONS = "slotOptions";
 }
