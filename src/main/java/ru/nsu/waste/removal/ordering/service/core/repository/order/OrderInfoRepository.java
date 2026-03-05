@@ -99,6 +99,23 @@ public class OrderInfoRepository {
               and (cast(:greenChosen as boolean) is null or oi.green_chosen = cast(:greenChosen as boolean))
             """;
 
+    private static final String FIND_DISTINCT_FRACTION_NAMES_BY_FILTERS_IN_PERIOD_QUERY = """
+            select distinct wf.name
+            from order_info oi
+                     join order_waste_fraction owf
+                          on owf.order_id = oi.id
+                              and owf.order_created_at = oi.created_at
+                     join waste_fraction wf
+                          on wf.id = owf.fraction_id
+            where oi.user_id = :userId
+              and oi.created_at >= :from
+              and oi.created_at <= :to
+              and (cast(:status as varchar) is null or oi.status = cast(:status as varchar))
+              and (cast(:type as varchar) is null or oi.type = cast(:type as varchar))
+              and (cast(:greenChosen as boolean) is null or oi.green_chosen = cast(:greenChosen as boolean))
+            order by wf.name
+            """;
+
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public long countDoneOrders(long userId) {
@@ -181,13 +198,7 @@ public class OrderInfoRepository {
     public long countOrdersByFiltersInPeriod(OrderFiltersInPeriod filters) {
         Long count = namedParameterJdbcTemplate.queryForObject(
                 COUNT_ORDERS_BY_FILTERS_IN_PERIOD_QUERY,
-                new MapSqlParameterSource()
-                        .addValue(ParameterNames.USER_ID, filters.userId())
-                        .addValue(ParameterNames.FROM, filters.from())
-                        .addValue(ParameterNames.TO, filters.to())
-                        .addValue(ParameterNames.STATUS, filters.status())
-                        .addValue(ParameterNames.TYPE, filters.type())
-                        .addValue(ParameterNames.GREEN_CHOSEN, filters.greenChosen()),
+                toPeriodFiltersParams(filters),
                 Long.class
         );
         return count == null ? 0L : count;
@@ -196,15 +207,27 @@ public class OrderInfoRepository {
     public long countDistinctFractionsByFiltersInPeriod(OrderFiltersInPeriod filters) {
         Long count = namedParameterJdbcTemplate.queryForObject(
                 COUNT_DISTINCT_FRACTIONS_BY_FILTERS_IN_PERIOD_QUERY,
-                new MapSqlParameterSource()
-                        .addValue(ParameterNames.USER_ID, filters.userId())
-                        .addValue(ParameterNames.FROM, filters.from())
-                        .addValue(ParameterNames.TO, filters.to())
-                        .addValue(ParameterNames.STATUS, filters.status())
-                        .addValue(ParameterNames.TYPE, filters.type())
-                        .addValue(ParameterNames.GREEN_CHOSEN, filters.greenChosen()),
+                toPeriodFiltersParams(filters),
                 Long.class
         );
         return count == null ? 0L : count;
+    }
+
+    public List<String> findDistinctFractionNamesByFiltersInPeriod(OrderFiltersInPeriod filters) {
+        return namedParameterJdbcTemplate.query(
+                FIND_DISTINCT_FRACTION_NAMES_BY_FILTERS_IN_PERIOD_QUERY,
+                toPeriodFiltersParams(filters),
+                (rs, rowNum) -> rs.getString(ColumnNames.NAME)
+        );
+    }
+
+    private MapSqlParameterSource toPeriodFiltersParams(OrderFiltersInPeriod filters) {
+        return new MapSqlParameterSource()
+                .addValue(ParameterNames.USER_ID, filters.userId())
+                .addValue(ParameterNames.FROM, filters.from())
+                .addValue(ParameterNames.TO, filters.to())
+                .addValue(ParameterNames.STATUS, filters.status())
+                .addValue(ParameterNames.TYPE, filters.type())
+                .addValue(ParameterNames.GREEN_CHOSEN, filters.greenChosen());
     }
 }

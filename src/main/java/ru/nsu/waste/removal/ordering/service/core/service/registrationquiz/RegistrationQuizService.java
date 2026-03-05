@@ -3,14 +3,13 @@ package ru.nsu.waste.removal.ordering.service.core.service.registrationquiz;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.nsu.waste.removal.ordering.service.core.exception.QuizValidationException;
-import ru.nsu.waste.removal.ordering.service.app.view.RegistrationQuizViewModel;
+import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuiz;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizOption;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizQuestion;
 import ru.nsu.waste.removal.ordering.service.core.repository.registrationquiz.RegistrationQuizOptionRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.registrationquiz.RegistrationQuizQuestionRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.registrationquiz.RegistrationQuizRepository;
-import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
 
 import java.util.List;
 import java.util.Map;
@@ -21,6 +20,24 @@ import java.util.stream.Collectors;
 public class RegistrationQuizService {
 
     private static final String REGISTRATION_QUIZ_CODE = "REGISTRATION_HEXAD_LITE";
+    private static final String QUIZ_UPDATED_MESSAGE =
+            "\u041e\u043f\u0440\u043e\u0441\u043d\u0438\u043a \u043e\u0431\u043d\u043e\u0432\u0438\u043b\u0441\u044f. "
+                    + "\u041f\u043e\u0436\u0430\u043b\u0443\u0439\u0441\u0442\u0430, \u0437\u0430\u043f\u043e\u043b\u043d\u0438\u0442\u0435 "
+                    + "\u0435\u0433\u043e \u0441\u043d\u043e\u0432\u0430.";
+    private static final String QUIZ_WITHOUT_QUESTIONS_MESSAGE =
+            "\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0439 \u043e\u043f\u0440\u043e\u0441\u043d\u0438\u043a \u043d\u0435 "
+                    + "\u0441\u043e\u0434\u0435\u0440\u0436\u0438\u0442 \u0432\u043e\u043f\u0440\u043e\u0441\u043e\u0432";
+    private static final String QUIZ_WITHOUT_OPTIONS_MESSAGE =
+            "\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0439 \u043e\u043f\u0440\u043e\u0441\u043d\u0438\u043a \u043d\u0435 "
+                    + "\u0441\u043e\u0434\u0435\u0440\u0436\u0438\u0442 \u0432\u0430\u0440\u0438\u0430\u043d\u0442\u043e\u0432 \u043e\u0442\u0432\u0435\u0442\u043e\u0432";
+    private static final String ANSWER_ALL_QUESTIONS_MESSAGE =
+            "\u041e\u0442\u0432\u0435\u0442\u044c\u0442\u0435 \u043d\u0430 \u0432\u0441\u0435 \u0432\u043e\u043f\u0440\u043e\u0441\u044b \u043e\u043f\u0440\u043e\u0441\u0430";
+    private static final String ANSWERS_INVALID_MESSAGE =
+            "\u041e\u0431\u043d\u0430\u0440\u0443\u0436\u0435\u043d\u044b \u043d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u0435 "
+                    + "\u043e\u0442\u0432\u0435\u0442\u044b \u043e\u043f\u0440\u043e\u0441\u0430";
+    private static final String QUIZ_NOT_FOUND_MESSAGE =
+            "\u0410\u043a\u0442\u0438\u0432\u043d\u044b\u0439 \u043e\u043f\u0440\u043e\u0441\u043d\u0438\u043a "
+                    + "\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d";
 
     private final RegistrationQuizRepository registrationQuizRepository;
     private final RegistrationQuizQuestionRepository registrationQuizQuestionRepository;
@@ -30,19 +47,19 @@ public class RegistrationQuizService {
         RegistrationQuiz quiz = getActiveQuiz();
 
         if (quizIdFromForm != null && quizIdFromForm != quiz.id()) {
-            throw new QuizValidationException("Опросник обновился. Пожалуйста, заполните его снова.");
+            throw new QuizValidationException(QUIZ_UPDATED_MESSAGE);
         }
 
         List<RegistrationQuizQuestion> questions = registrationQuizQuestionRepository.findActiveByQuizId(quiz.id());
         if (questions.isEmpty()) {
-            throw new IllegalStateException("Активный опросник не содержит вопросов");
+            throw new IllegalStateException(QUIZ_WITHOUT_QUESTIONS_MESSAGE);
         }
 
         List<RegistrationQuizOption> options = registrationQuizOptionRepository.findActiveByQuestionIds(
                 questions.stream().map(RegistrationQuizQuestion::id).toList()
         );
         if (options.isEmpty()) {
-            throw new IllegalStateException("Активный опросник не содержит вариантов ответов");
+            throw new IllegalStateException(QUIZ_WITHOUT_OPTIONS_MESSAGE);
         }
 
         Map<Integer, RegistrationQuizOption> optionById = options.stream()
@@ -50,64 +67,31 @@ public class RegistrationQuizService {
 
         return new ActiveRegistrationQuizData(quiz, questions, options, optionById);
     }
+
     public void validateAnswers(Map<Long, Long> answers) {
         ActiveRegistrationQuizData quizData = getActiveQuizData(null);
         List<RegistrationQuizQuestion> questions = quizData.questions();
         Map<Integer, RegistrationQuizOption> optionById = quizData.optionById();
 
         if (answers == null || answers.isEmpty()) {
-            throw new QuizValidationException("Ответьте на все вопросы опроса");
+            throw new QuizValidationException(ANSWER_ALL_QUESTIONS_MESSAGE);
         }
+
         for (RegistrationQuizQuestion question : questions) {
             Long optionIdRaw = answers.get((long) question.id());
             if (optionIdRaw == null) {
-                throw new QuizValidationException("Ответьте на все вопросы опроса");
+                throw new QuizValidationException(ANSWER_ALL_QUESTIONS_MESSAGE);
             }
+
             RegistrationQuizOption option = optionById.get(optionIdRaw.intValue());
             if (option == null || option.questionId() != question.id()) {
-                throw new QuizValidationException("Обнаружены некорректные ответы опроса");
+                throw new QuizValidationException(ANSWERS_INVALID_MESSAGE);
             }
         }
-    }
-
-    public RegistrationQuizViewModel getActiveQuizView() {
-        ActiveRegistrationQuizData quizData = getActiveQuizData(null);
-        Map<Integer, List<RegistrationQuizOption>> optionsByQuestion = quizData.options().stream()
-                .collect(Collectors.groupingBy(RegistrationQuizOption::questionId));
-
-        List<RegistrationQuizViewModel.QuestionViewModel> questionViews = quizData.questions().stream()
-                .map(question -> getQuestionViewModel(question, optionsByQuestion))
-                .toList();
-
-        return new RegistrationQuizViewModel(
-                quizData.quiz().id(),
-                quizData.quiz().code(),
-                quizData.quiz().version(),
-                questionViews
-        );
     }
 
     private RegistrationQuiz getActiveQuiz() {
         return registrationQuizRepository.findLatestActiveByCode(REGISTRATION_QUIZ_CODE)
-                .orElseThrow(() -> new IllegalStateException("Активный опросник регистрации не найден"));
-    }
-
-    private static RegistrationQuizViewModel.QuestionViewModel getQuestionViewModel(
-            RegistrationQuizQuestion question,
-            Map<Integer, List<RegistrationQuizOption>> optionsByQuestion
-    ) {
-        return new RegistrationQuizViewModel.QuestionViewModel(
-                question.id(),
-                question.ord(),
-                question.text(),
-                question.tiebreak(),
-                optionsByQuestion.getOrDefault(question.id(), List.of()).stream()
-                        .map(option -> new RegistrationQuizViewModel.OptionViewModel(
-                                option.id(),
-                                option.ord(),
-                                option.text()
-                        ))
-                        .toList()
-        );
+                .orElseThrow(() -> new IllegalStateException(QUIZ_NOT_FOUND_MESSAGE));
     }
 }

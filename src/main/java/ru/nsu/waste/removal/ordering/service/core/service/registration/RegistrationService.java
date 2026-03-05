@@ -3,11 +3,11 @@ package ru.nsu.waste.removal.ordering.service.core.service.registration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.nsu.waste.removal.ordering.service.core.exception.QuizValidationException;
-import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
 import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
+import ru.nsu.waste.removal.ordering.service.core.exception.QuizValidationException;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserRegistrationResult;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.service.address.AddressService;
 import ru.nsu.waste.removal.ordering.service.core.service.address.mapper.AddressMapper;
@@ -16,7 +16,7 @@ import ru.nsu.waste.removal.ordering.service.core.service.person.PersonInfoServi
 import ru.nsu.waste.removal.ordering.service.core.service.person.mapper.PersonInfoMapper;
 import ru.nsu.waste.removal.ordering.service.core.service.registrationquiz.RegistrationQuizService;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
-import ru.nsu.waste.removal.ordering.service.core.service.user.UserPageService;
+import ru.nsu.waste.removal.ordering.service.core.service.user.UserProfileService;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserTypeService;
 
 import java.time.DateTimeException;
@@ -27,18 +27,21 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RegistrationService {
 
+    private static final String INVALID_TIMEZONE_MESSAGE =
+            "\u041d\u0435\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043d\u044b\u0439 \u0447\u0430\u0441\u043e\u0432\u043e\u0439 \u043f\u043e\u044f\u0441";
+
     private final PersonInfoService personInfoService;
     private final PersonInfoMapper personInfoMapper;
     private final AddressService addressService;
     private final AddressMapper addressMapper;
     private final UserInfoService userInfoService;
     private final EcoTaskService ecoTaskService;
-    private final UserPageService userPageService;
+    private final UserProfileService userProfileService;
     private final RegistrationQuizService registrationQuizService;
     private final UserTypeService userTypeService;
 
     @Transactional
-    public RegistrationResultViewModel register(RegistrationForm form, QuizAnswerForm quizAnswerForm) {
+    public UserRegistrationResult register(RegistrationForm form, QuizAnswerForm quizAnswerForm) {
         ZoneId zoneId = validateTimezone(form.getTimezone());
 
         ActiveRegistrationQuizData quizData = registrationQuizService.getActiveQuizData(quizAnswerForm.getQuizId());
@@ -54,14 +57,14 @@ public class RegistrationService {
 
         ecoTaskService.assignStarterTasks(userType, userId, zoneId);
 
-        return userPageService.getUserPage(userId);
+        return userProfileService.getUserProfile(userId);
     }
 
     private ZoneId validateTimezone(String timezone) {
         try {
             return ZoneId.of(timezone);
         } catch (DateTimeException e) {
-            throw new QuizValidationException("Некорректный часовой пояс");
+            throw new QuizValidationException(INVALID_TIMEZONE_MESSAGE);
         }
     }
 }
