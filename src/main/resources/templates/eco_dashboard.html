@@ -3,18 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Экодашборд</title>
+    <title>Экологический дашборд</title>
     <link rel="stylesheet" th:href="@{/css/home.css}">
 </head>
 <body>
 <div th:replace="~{fragments/layout :: header('Экологический дашборд')}"></div>
 <main class="app-shell">
+    <section class="card top-panel">
+        <div>
+            <h2>Баланс</h2>
+            <p><strong>Текущий баланс:</strong> <span th:text="${dashboard.currentPoints}">0</span> баллов</p>
+            <p><strong>Всего накоплено:</strong> <span th:text="${dashboard.totalPoints}">0</span> баллов</p>
+        </div>
+        <div>
+            <p><strong>Период:</strong> <span th:text="${dashboard.period.title}">7 дней</span></p>
+        </div>
+    </section>
+
     <section class="card">
-        <h2>Раздел в разработке</h2>
-        <p>Здесь будет отображаться экологический прогресс пользователя.</p>
-        <a th:href="@{/user/{userId}/home(userId=${userId})}">Вернуться на главную</a>
+        <h2>Период отображения</h2>
+        <nav class="period-switch">
+            <a class="period-link"
+               th:each="option : ${dashboard.period.options}"
+               th:href="@{/user/{userId}/eco-dashboard(userId=${dashboard.userId},period=${option.key})}"
+               th:classappend="${option.selected} ? ' period-link-active' : ''"
+               th:text="${option.title}">7 дней</a>
+        </nav>
+    </section>
+
+    <section class="card">
+        <h2>Статистика заказов</h2>
+        <div class="stats-grid">
+            <article class="stat-card">
+                <p class="stat-title">Выполнено заказов</p>
+                <p class="stat-value" th:text="${dashboard.orders.doneTotal}">0</p>
+            </article>
+            <article class="stat-card">
+                <p class="stat-title">Раздельных выполнено</p>
+                <p class="stat-value" th:text="${dashboard.orders.doneSeparate}">0</p>
+            </article>
+            <article class="stat-card">
+                <p class="stat-title">Доля раздельных</p>
+                <p class="stat-value"><span th:text="${dashboard.orders.separateSharePercent}">0</span>%</p>
+            </article>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Фракции, которые вы сортируете</h2>
+        <p th:if="${#lists.isEmpty(dashboard.fractions)}">
+            Пока нет раздельных заказов — попробуйте оформить раздельный вывоз.
+        </p>
+        <p th:unless="${#lists.isEmpty(dashboard.fractions)}"
+           th:text="${#strings.listJoin(dashboard.fractions, ', ')}">
+            Бумага, Пластик, Стекло
+        </p>
+    </section>
+
+    <section class="card" th:if="${!#lists.isEmpty(dashboard.insights)}">
+        <h2>Инсайты</h2>
+        <ul class="insights-list">
+            <li th:each="insight : ${dashboard.insights}" th:text="${insight}">
+                За период раздельных заказов: 0.
+            </li>
+        </ul>
+    </section>
+
+    <section class="card" th:if="${dashboard.userType == 'ACHIEVER' and dashboard.achiever != null}">
+        <h2>Прогресс Achiever</h2>
+        <p><strong>Текущий уровень:</strong> <span th:text="${dashboard.achiever.levelId}">1</span></p>
+        <div class="progress">
+            <div class="progress-bar" th:style="'width:' + ${dashboard.achiever.progressPercent} + '%'"> </div>
+        </div>
+
+        <p th:if="${dashboard.achiever.maxLevelReached}">Максимальный уровень достигнут</p>
+        <p th:unless="${dashboard.achiever.maxLevelReached}">
+            До следующего уровня нужно: <span th:text="${dashboard.achiever.nextRequiredPoints}">2000</span>.
+            Осталось: <span th:text="${dashboard.achiever.remaining}">500</span> баллов.
+        </p>
+    </section>
+
+    <section class="card">
+        <a th:href="@{/user/{userId}/home(userId=${dashboard.userId})}">Вернуться на главную</a>
     </section>
 </main>
 </body>
 </html>
-
