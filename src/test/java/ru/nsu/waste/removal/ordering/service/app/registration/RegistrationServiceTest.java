@@ -16,7 +16,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
-import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserRegistrationResult;
 import ru.nsu.waste.removal.ordering.service.core.exception.DuplicatePhoneException;
 import ru.nsu.waste.removal.ordering.service.core.service.registration.RegistrationService;
 
@@ -85,10 +85,10 @@ class RegistrationServiceTest {
         RegistrationForm form = validForm("77001234567", TZ_ALMATY);
         QuizAnswerForm answers = achieverAnswers();
 
-        RegistrationResultViewModel result = registrationService.register(form, answers);
+        UserRegistrationResult result = registrationService.register(form, answers);
 
         assertNotNull(result);
-        assertEquals("Достигатель", result.userTypeName());
+        assertEquals("\u0414\u043e\u0441\u0442\u0438\u0433\u0430\u0442\u0435\u043b\u044c", result.userTypeName());
         assertEquals(0, result.balances().totalPoints());
         assertEquals(0, result.balances().currentPoints());
 
@@ -137,16 +137,16 @@ class RegistrationServiceTest {
         RegistrationForm form = validForm("77001112233", TZ_ALMATY);
         QuizAnswerForm tieAnswers = tieWithExplorerTieBreakAnswers();
 
-        RegistrationResultViewModel result = registrationService.register(form, tieAnswers);
+        UserRegistrationResult result = registrationService.register(form, tieAnswers);
 
-        assertEquals("Исследователь", result.userTypeName());
+        assertEquals("\u0418\u0441\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u0442\u0435\u043b\u044c", result.userTypeName());
         assertEquals(achieverBefore, count("achiever_profile"));
     }
 
     @Test
     void expiredAt_weeklyAndMonthly_areCalculatedInUserTimezone() {
         RegistrationForm form = validForm("77009998877", TZ_ALMATY);
-        RegistrationResultViewModel result = registrationService.register(form, explorerAnswers());
+        UserRegistrationResult result = registrationService.register(form, explorerAnswers());
         long userId = result.userId();
 
         OffsetDateTime weeklyExpired = jdbcTemplate.queryForObject(
@@ -256,3 +256,4 @@ class RegistrationServiceTest {
         }
     }
 }
+

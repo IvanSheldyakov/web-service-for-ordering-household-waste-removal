@@ -6,16 +6,22 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.support.SessionStatus;
 import ru.nsu.waste.removal.ordering.service.app.constant.AttributeNames;
-import ru.nsu.waste.removal.ordering.service.app.view.RegistrationQuizViewModel;
-import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
 import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
+import ru.nsu.waste.removal.ordering.service.app.view.RegistrationQuizViewModel;
+import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
+import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
+import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizOption;
+import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizQuestion;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserRegistrationResult;
 import ru.nsu.waste.removal.ordering.service.core.service.person.PersonInfoService;
 import ru.nsu.waste.removal.ordering.service.core.service.registration.RegistrationService;
 import ru.nsu.waste.removal.ordering.service.core.service.registrationquiz.RegistrationQuizService;
 import ru.nsu.waste.removal.ordering.service.core.service.timezone.TimezoneService;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static ru.nsu.waste.removal.ordering.service.app.util.Validator.isRegistrationFilled;
 
@@ -49,7 +55,20 @@ public class RegistrationFacade {
     }
 
     public RegistrationQuizViewModel getActiveQuizView() {
-        return registrationQuizService.getActiveQuizView();
+        ActiveRegistrationQuizData quizData = registrationQuizService.getActiveQuizData(null);
+        Map<Integer, List<RegistrationQuizOption>> optionsByQuestion = quizData.options().stream()
+                .collect(Collectors.groupingBy(RegistrationQuizOption::questionId));
+
+        List<RegistrationQuizViewModel.QuestionViewModel> questionViews = quizData.questions().stream()
+                .map(question -> toQuestionView(question, optionsByQuestion))
+                .toList();
+
+        return new RegistrationQuizViewModel(
+                quizData.quiz().id(),
+                quizData.quiz().code(),
+                quizData.quiz().version(),
+                questionViews
+        );
     }
 
     public QuizAnswerForm createQuizAnswerForm(long quizId) {
@@ -59,7 +78,7 @@ public class RegistrationFacade {
     }
 
     public RegistrationResultViewModel register(RegistrationForm form, QuizAnswerForm quizAnswerForm) {
-        return registrationService.register(form, quizAnswerForm);
+        return toResultViewModel(registrationService.register(form, quizAnswerForm));
     }
 
     public RegistrationResultViewModel registerAndCompleteSession(
@@ -106,5 +125,65 @@ public class RegistrationFacade {
                     TIMEZONE_INVALID
             ));
         }
+    }
+
+    private RegistrationResultViewModel toResultViewModel(UserRegistrationResult result) {
+        return new RegistrationResultViewModel(
+                result.userId(),
+                result.userTypeName(),
+                new RegistrationResultViewModel.BalanceViewModel(
+                        result.balances().totalPoints(),
+                        result.balances().currentPoints()
+                ),
+                new RegistrationResultViewModel.MotivationBlockViewModel(
+                        result.motivationBlock().typeName(),
+                        result.motivationBlock().currentLevelRequiredPoints(),
+                        result.motivationBlock().progressPercentToNextLevel(),
+                        result.motivationBlock().postalCode(),
+                        result.motivationBlock().message()
+                ),
+                result.ecoTasks().stream()
+                        .map(task -> new RegistrationResultViewModel.EcoTaskViewModel(
+                                task.id(),
+                                task.title(),
+                                task.description(),
+                                task.points(),
+                                task.expiredAt()
+                        ))
+                        .toList(),
+                result.achievements().stream()
+                        .map(achievement -> new RegistrationResultViewModel.AchievementViewModel(
+                                achievement.id(),
+                                achievement.title(),
+                                achievement.description()
+                        ))
+                        .toList(),
+                result.infoCards().stream()
+                        .map(card -> new RegistrationResultViewModel.InfoCardViewModel(
+                                card.id(),
+                                card.title(),
+                                card.description()
+                        ))
+                        .toList()
+        );
+    }
+
+    private RegistrationQuizViewModel.QuestionViewModel toQuestionView(
+            RegistrationQuizQuestion question,
+            Map<Integer, List<RegistrationQuizOption>> optionsByQuestion
+    ) {
+        return new RegistrationQuizViewModel.QuestionViewModel(
+                question.id(),
+                question.ord(),
+                question.text(),
+                question.tiebreak(),
+                optionsByQuestion.getOrDefault(question.id(), List.of()).stream()
+                        .map(option -> new RegistrationQuizViewModel.OptionViewModel(
+                                option.id(),
+                                option.ord(),
+                                option.text()
+                        ))
+                        .toList()
+        );
     }
 }

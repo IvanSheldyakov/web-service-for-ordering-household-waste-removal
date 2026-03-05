@@ -24,6 +24,8 @@ public final class AttributeNames {
 
     public static final String HOME = "home";
 
+    public static final String DASHBOARD = "dashboard";
+
     public static final String USER_ID = "userId";
 
     public static final String ORDER_CREATE_FORM = "orderCreateForm";

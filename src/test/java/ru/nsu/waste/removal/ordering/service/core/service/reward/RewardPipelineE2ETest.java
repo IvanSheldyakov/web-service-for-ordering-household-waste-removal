@@ -16,7 +16,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
-import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserRegistrationResult;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventProcessorService;
@@ -174,7 +174,7 @@ class RewardPipelineE2ETest {
     }
 
     private long registerAchiever(String phone) {
-        RegistrationResultViewModel result = registrationService.register(
+        UserRegistrationResult result = registrationService.register(
                 validForm(phone, TZ_ALMATY),
                 achieverAnswers()
         );
@@ -222,3 +222,4 @@ class RewardPipelineE2ETest {
         }
     }
 }
+

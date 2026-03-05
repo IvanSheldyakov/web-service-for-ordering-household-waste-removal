@@ -91,6 +91,59 @@ h3 {
     gap: 12px;
 }
 
+.period-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.period-link {
+    text-decoration: none;
+    border: 1px solid #d7e0d4;
+    border-radius: 999px;
+    padding: 6px 12px;
+    color: #1f2a1f;
+    background: #ffffff;
+    font-weight: 600;
+}
+
+.period-link-active {
+    background: #2d6f3b;
+    border-color: #2d6f3b;
+    color: #ffffff;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.stat-card {
+    border: 1px solid #e0e8dd;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fbfdfb;
+}
+
+.stat-title {
+    margin: 0;
+    color: #4c624f;
+}
+
+.stat-value {
+    margin: 8px 0 0;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.insights-list {
+    margin: 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 8px;
+}
+
 .order-create-form {
     display: grid;
     gap: 16px;

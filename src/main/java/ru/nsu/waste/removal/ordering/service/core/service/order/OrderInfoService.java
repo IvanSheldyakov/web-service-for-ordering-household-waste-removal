@@ -43,4 +43,8 @@ public class OrderInfoService {
     public long countDistinctFractionsByFiltersInPeriod(OrderFiltersInPeriod filters) {
         return orderInfoRepository.countDistinctFractionsByFiltersInPeriod(filters);
     }
+
+    public List<String> findDistinctFractionNamesByFiltersInPeriod(OrderFiltersInPeriod filters) {
+        return orderInfoRepository.findDistinctFractionNamesByFiltersInPeriod(filters);
+    }
 }
