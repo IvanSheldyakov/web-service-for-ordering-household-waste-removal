@@ -56,7 +56,7 @@
                 <p>
                     Очки: <span th:text="${task.points}">0</span>,
                     действует до:
-                    <span th:text="${#temporals.format(task.expiredAt, 'yyyy-MM-dd HH:mm:ss XXX')}">2026-01-01</span>
+                    <span th:text="${#temporals.format(task.expiredAt, 'yyyy-MM-dd HH:mm:ss')}">2026-01-01</span>
                 </p>
             </li>
         </ul>

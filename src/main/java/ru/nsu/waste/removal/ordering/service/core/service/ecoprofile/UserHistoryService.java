@@ -13,7 +13,10 @@ import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionH
 import ru.nsu.waste.removal.ordering.service.core.repository.order.WasteFractionRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
 
+import java.time.DateTimeException;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -39,7 +42,7 @@ public class UserHistoryService {
     private static final String ECO_TASK_COMPLETED_FALLBACK = "Выполнено эко-задание";
     private static final String POINTS_WITHDRAW_DESCRIPTION = "Списание баллов";
     private static final String DEFAULT_ACTION_DESCRIPTION = "Действие пользователя";
-    private static final String UNKNOWN_SLOT_TIME = "время: —";
+    private static final String UNKNOWN_SLOT_TIME = "слот: —";
     private static final String UNKNOWN_FRACTIONS = "фракции: —";
 
     private static final DateTimeFormatter SLOT_FROM_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
@@ -68,8 +71,9 @@ public class UserHistoryService {
     public UserHistory getUserHistory(long userId, int limit) {
         int safeLimit = limit <= 0 ? DEFAULT_LIMIT : limit;
         long currentPoints = userInfoService.getProfileByUserId(userId).currentPoints();
+        ZoneId userZoneId = resolveUserZoneId(userId);
         List<UserActionHistoryRecord> events = loadLatestEvents(userId, safeLimit);
-        List<UserHistoryItem> items = buildItems(events, currentPoints);
+        List<UserHistoryItem> items = buildItems(events, currentPoints, userZoneId);
 
         return new UserHistory(
                 userId,
@@ -111,15 +115,19 @@ public class UserHistoryService {
                 .toList();
     }
 
-    private List<UserHistoryItem> buildItems(List<UserActionHistoryRecord> events, long currentPoints) {
+    private List<UserHistoryItem> buildItems(
+            List<UserActionHistoryRecord> events,
+            long currentPoints,
+            ZoneId userZoneId
+    ) {
         List<UserHistoryItem> items = new ArrayList<>(events.size());
         long running = currentPoints;
 
         for (UserActionHistoryRecord event : events) {
             long balanceAfter = running;
             items.add(new UserHistoryItem(
-                    event.createdAt(),
-                    buildDescription(event),
+                    convertToUserTimezone(event.createdAt(), userZoneId),
+                    buildDescription(event, userZoneId),
                     event.pointsDifference(),
                     balanceAfter
             ));
@@ -129,7 +137,7 @@ public class UserHistoryService {
         return items;
     }
 
-    private String buildDescription(UserActionHistoryRecord event) {
+    private String buildDescription(UserActionHistoryRecord event, ZoneId userZoneId) {
         if (event.pointsDifference() < 0L) {
             return POINTS_WITHDRAW_DESCRIPTION;
         }
@@ -139,7 +147,7 @@ public class UserHistoryService {
                 : event.eventType().trim().toUpperCase(Locale.ROOT);
 
         if (EVENT_TYPE_ORDER_CREATED.equals(eventType)) {
-            return buildOrderCreatedDescription(event.content());
+            return buildOrderCreatedDescription(event.content(), userZoneId);
         }
         if (EVENT_TYPE_SEPARATE_CHOSEN.equals(eventType)) {
             return SEPARATE_CHOSEN_DESCRIPTION;
@@ -153,13 +161,13 @@ public class UserHistoryService {
         return DEFAULT_ACTION_DESCRIPTION;
     }
 
-    private String buildOrderCreatedDescription(String contentJson) {
+    private String buildOrderCreatedDescription(String contentJson, ZoneId userZoneId) {
         OrderCreatedEventContent content = tryRead(contentJson, OrderCreatedEventContent.class);
         if (content == null) {
             return ORDER_CREATED_FALLBACK;
         }
 
-        String slotDescription = buildSlotDescription(content.pickupFrom(), content.pickupTo());
+        String slotDescription = buildSlotDescription(content.pickupFrom(), content.pickupTo(), userZoneId);
         boolean separateOrder = ORDER_TYPE_SEPARATE.equalsIgnoreCase(content.type());
         String greenSlotSuffix = content.greenChosen() ? ", зелёный слот" : "";
 
@@ -177,11 +185,7 @@ public class UserHistoryService {
             return ECO_TASK_COMPLETED_FALLBACK;
         }
 
-        String code = content.ecoTaskCode() == null || content.ecoTaskCode().isBlank()
-                ? "—"
-                : content.ecoTaskCode();
-
-        return "Выполнено эко-задание: " + code + " (+" + content.rewardPoints() + ")";
+        return "Выполнено эко-задание (+" + content.rewardPoints() + ")";
     }
 
     private String resolveFractionNames(List<Long> fractionIds) {
@@ -195,16 +199,32 @@ public class UserHistoryService {
         return String.join(", ", fractionNames);
     }
 
-    private String buildSlotDescription(String pickupFrom, String pickupTo) {
+    private String buildSlotDescription(String pickupFrom, String pickupTo, ZoneId userZoneId) {
         OffsetDateTime pickupFromDateTime = tryParseDateTime(pickupFrom);
         OffsetDateTime pickupToDateTime = tryParseDateTime(pickupTo);
         if (pickupFromDateTime == null || pickupToDateTime == null) {
             return UNKNOWN_SLOT_TIME;
         }
 
-        return SLOT_FROM_FORMATTER.format(pickupFromDateTime)
+        return "слот: " + SLOT_FROM_FORMATTER.format(convertToUserTimezone(pickupFromDateTime, userZoneId))
                 + "-"
-                + SLOT_TO_FORMATTER.format(pickupToDateTime);
+                + SLOT_TO_FORMATTER.format(convertToUserTimezone(pickupToDateTime, userZoneId));
+    }
+
+    private ZoneId resolveUserZoneId(long userId) {
+        String timezone = userInfoService.getGreenSlotContextByUserId(userId).timezone();
+        try {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException exception) {
+            return ZoneOffset.UTC;
+        }
+    }
+
+    private OffsetDateTime convertToUserTimezone(OffsetDateTime value, ZoneId userZoneId) {
+        if (value == null) {
+            return null;
+        }
+        return value.atZoneSameInstant(userZoneId).toOffsetDateTime();
     }
 
     private OffsetDateTime tryParseDateTime(String value) {
