@@ -1,0 +1,231 @@
+package ru.nsu.waste.removal.ordering.service.core.service.ecoprofile;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.UserHistory;
+import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.UserHistoryItem;
+import ru.nsu.waste.removal.ordering.service.core.model.event.EcoTaskCompletedEventContent;
+import ru.nsu.waste.removal.ordering.service.core.model.event.OrderCreatedEventContent;
+import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
+import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryRecord;
+import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
+import ru.nsu.waste.removal.ordering.service.core.repository.order.WasteFractionRepository;
+import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
+
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+public class UserHistoryService {
+
+    private static final int DEFAULT_LIMIT = 10;
+    private static final String EVENT_TYPE_ORDER_CREATED = UserActionEventType.ORDER_CREATED.dbName();
+    private static final String EVENT_TYPE_SEPARATE_CHOSEN = UserActionEventType.SEPARATE_CHOSEN.dbName();
+    private static final String EVENT_TYPE_GREEN_SLOT_CHOSEN = UserActionEventType.GREEN_SLOT_CHOSEN.dbName();
+    private static final String EVENT_TYPE_ECO_TASK_COMPLETED = UserActionEventType.ECO_TASK_COMPLETED.dbName();
+    private static final String ORDER_TYPE_SEPARATE = "SEPARATE";
+
+    private static final String ORDER_CREATED_FALLBACK = "Оформлен заказ";
+    private static final String SEPARATE_CHOSEN_DESCRIPTION = "Начисление за раздельный вывоз";
+    private static final String GREEN_SLOT_CHOSEN_DESCRIPTION = "Начисление за выбор зелёного слота";
+    private static final String ECO_TASK_COMPLETED_FALLBACK = "Выполнено эко-задание";
+    private static final String POINTS_WITHDRAW_DESCRIPTION = "Списание баллов";
+    private static final String DEFAULT_ACTION_DESCRIPTION = "Действие пользователя";
+    private static final String UNKNOWN_SLOT_TIME = "время: —";
+    private static final String UNKNOWN_FRACTIONS = "фракции: —";
+
+    private static final DateTimeFormatter SLOT_FROM_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    private static final DateTimeFormatter SLOT_TO_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
+
+    private static final Comparator<UserActionHistoryRecord> HISTORY_COMPARATOR =
+            Comparator.comparing(UserActionHistoryRecord::createdAt, Comparator.reverseOrder())
+                    .thenComparing(UserActionHistoryRecord::id, Comparator.reverseOrder());
+
+    private static final List<String> INCLUDED_EVENT_TYPES = List.of(
+            EVENT_TYPE_ORDER_CREATED,
+            EVENT_TYPE_SEPARATE_CHOSEN,
+            EVENT_TYPE_GREEN_SLOT_CHOSEN,
+            EVENT_TYPE_ECO_TASK_COMPLETED
+    );
+
+    private final UserActionHistoryRepository userActionHistoryRepository;
+    private final UserInfoService userInfoService;
+    private final WasteFractionRepository wasteFractionRepository;
+    private final ObjectMapper objectMapper;
+
+    public UserHistory getUserHistory(long userId) {
+        return getUserHistory(userId, DEFAULT_LIMIT);
+    }
+
+    public UserHistory getUserHistory(long userId, int limit) {
+        int safeLimit = limit <= 0 ? DEFAULT_LIMIT : limit;
+        long currentPoints = userInfoService.getProfileByUserId(userId).currentPoints();
+        List<UserActionHistoryRecord> events = loadLatestEvents(userId, safeLimit);
+        List<UserHistoryItem> items = buildItems(events, currentPoints);
+
+        return new UserHistory(
+                userId,
+                currentPoints,
+                items
+        );
+    }
+
+    private List<UserActionHistoryRecord> loadLatestEvents(long userId, int limit) {
+        List<UserActionHistoryRecord> eventsByType = userActionHistoryRepository.findLatestEventsByUserId(
+                userId,
+                INCLUDED_EVENT_TYPES,
+                limit
+        );
+        List<UserActionHistoryRecord> negativeEvents = userActionHistoryRepository.findLatestNegativeEventsByUserId(
+                userId,
+                limit
+        );
+
+        return mergeAndLimit(eventsByType, negativeEvents, limit);
+    }
+
+    private List<UserActionHistoryRecord> mergeAndLimit(
+            List<UserActionHistoryRecord> eventsByType,
+            List<UserActionHistoryRecord> negativeEvents,
+            int limit
+    ) {
+        Map<Long, UserActionHistoryRecord> uniqueEvents = new HashMap<>();
+        for (UserActionHistoryRecord event : eventsByType) {
+            uniqueEvents.putIfAbsent(event.id(), event);
+        }
+        for (UserActionHistoryRecord event : negativeEvents) {
+            uniqueEvents.putIfAbsent(event.id(), event);
+        }
+
+        return uniqueEvents.values().stream()
+                .sorted(HISTORY_COMPARATOR)
+                .limit(limit)
+                .toList();
+    }
+
+    private List<UserHistoryItem> buildItems(List<UserActionHistoryRecord> events, long currentPoints) {
+        List<UserHistoryItem> items = new ArrayList<>(events.size());
+        long running = currentPoints;
+
+        for (UserActionHistoryRecord event : events) {
+            long balanceAfter = running;
+            items.add(new UserHistoryItem(
+                    event.createdAt(),
+                    buildDescription(event),
+                    event.pointsDifference(),
+                    balanceAfter
+            ));
+            running = running - event.pointsDifference();
+        }
+
+        return items;
+    }
+
+    private String buildDescription(UserActionHistoryRecord event) {
+        if (event.pointsDifference() < 0L) {
+            return POINTS_WITHDRAW_DESCRIPTION;
+        }
+
+        String eventType = event.eventType() == null
+                ? ""
+                : event.eventType().trim().toUpperCase(Locale.ROOT);
+
+        if (EVENT_TYPE_ORDER_CREATED.equals(eventType)) {
+            return buildOrderCreatedDescription(event.content());
+        }
+        if (EVENT_TYPE_SEPARATE_CHOSEN.equals(eventType)) {
+            return SEPARATE_CHOSEN_DESCRIPTION;
+        }
+        if (EVENT_TYPE_GREEN_SLOT_CHOSEN.equals(eventType)) {
+            return GREEN_SLOT_CHOSEN_DESCRIPTION;
+        }
+        if (EVENT_TYPE_ECO_TASK_COMPLETED.equals(eventType)) {
+            return buildEcoTaskCompletedDescription(event.content());
+        }
+        return DEFAULT_ACTION_DESCRIPTION;
+    }
+
+    private String buildOrderCreatedDescription(String contentJson) {
+        OrderCreatedEventContent content = tryRead(contentJson, OrderCreatedEventContent.class);
+        if (content == null) {
+            return ORDER_CREATED_FALLBACK;
+        }
+
+        String slotDescription = buildSlotDescription(content.pickupFrom(), content.pickupTo());
+        boolean separateOrder = ORDER_TYPE_SEPARATE.equalsIgnoreCase(content.type());
+        String greenSlotSuffix = content.greenChosen() ? ", зелёный слот" : "";
+
+        if (!separateOrder) {
+            return "Оформлен заказ: смешанный вывоз, " + slotDescription + greenSlotSuffix;
+        }
+
+        String fractions = resolveFractionNames(content.fractionIds());
+        return "Оформлен заказ: раздельный вывоз (" + fractions + "), " + slotDescription + greenSlotSuffix;
+    }
+
+    private String buildEcoTaskCompletedDescription(String contentJson) {
+        EcoTaskCompletedEventContent content = tryRead(contentJson, EcoTaskCompletedEventContent.class);
+        if (content == null) {
+            return ECO_TASK_COMPLETED_FALLBACK;
+        }
+
+        String code = content.ecoTaskCode() == null || content.ecoTaskCode().isBlank()
+                ? "—"
+                : content.ecoTaskCode();
+
+        return "Выполнено эко-задание: " + code + " (+" + content.rewardPoints() + ")";
+    }
+
+    private String resolveFractionNames(List<Long> fractionIds) {
+        List<String> fractionNames = wasteFractionRepository.findActiveFractionsByIds(fractionIds).stream()
+                .map(fraction -> fraction.name())
+                .toList();
+
+        if (fractionNames.isEmpty()) {
+            return UNKNOWN_FRACTIONS;
+        }
+        return String.join(", ", fractionNames);
+    }
+
+    private String buildSlotDescription(String pickupFrom, String pickupTo) {
+        OffsetDateTime pickupFromDateTime = tryParseDateTime(pickupFrom);
+        OffsetDateTime pickupToDateTime = tryParseDateTime(pickupTo);
+        if (pickupFromDateTime == null || pickupToDateTime == null) {
+            return UNKNOWN_SLOT_TIME;
+        }
+
+        return SLOT_FROM_FORMATTER.format(pickupFromDateTime)
+                + "-"
+                + SLOT_TO_FORMATTER.format(pickupToDateTime);
+    }
+
+    private OffsetDateTime tryParseDateTime(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return OffsetDateTime.parse(value);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private <T> T tryRead(String contentJson, Class<T> targetClass) {
+        if (contentJson == null || contentJson.isBlank()) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(contentJson, targetClass);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+}

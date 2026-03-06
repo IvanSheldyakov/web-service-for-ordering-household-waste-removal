@@ -84,6 +84,8 @@ public final class ParameterNames {
 
     public static final String EVENT_TYPE = "eventType";
 
+    public static final String EVENT_TYPES = "eventTypes";
+
     public static final String CONTENT = "content";
 
     public static final String POINTS_DIFFERENCE = "pointsDifference";

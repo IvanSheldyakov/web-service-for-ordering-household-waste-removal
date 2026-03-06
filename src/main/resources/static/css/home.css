@@ -222,3 +222,42 @@ h3 {
     cursor: pointer;
 }
 
+.history-table-wrapper {
+    overflow-x: auto;
+}
+
+.history-table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e0e8dd;
+    text-align: left;
+    vertical-align: top;
+}
+
+.history-table th {
+    color: #4c624f;
+    font-weight: 700;
+    background: #fbfdfb;
+}
+
+.delta-positive {
+    color: #1a5c2a;
+    font-weight: 700;
+}
+
+.delta-negative {
+    color: #b42318;
+    font-weight: 700;
+}
+
+.delta-zero {
+    color: #4c624f;
+    font-weight: 600;
+}
+
