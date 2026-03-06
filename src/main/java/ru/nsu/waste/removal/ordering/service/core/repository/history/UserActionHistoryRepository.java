@@ -6,6 +6,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryEvent;
+import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryRecord;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
 
@@ -69,6 +70,36 @@ public class UserActionHistoryRepository {
             set content = cast(:content as jsonb),
                 points_difference = :pointsDifference
             where id = :id
+            """;
+
+    private static final String FIND_LATEST_EVENTS_BY_USER_ID_QUERY = """
+            select id,
+                   user_id,
+                   created_at,
+                   event_type,
+                   points_difference,
+                   content
+            from user_action_history
+            where user_id = :userId
+              and event_type in (:eventTypes)
+            order by created_at desc,
+                     id desc
+            limit :limit
+            """;
+
+    private static final String FIND_LATEST_NEGATIVE_EVENTS_BY_USER_ID_QUERY = """
+            select id,
+                   user_id,
+                   created_at,
+                   event_type,
+                   points_difference,
+                   content
+            from user_action_history
+            where user_id = :userId
+              and points_difference < 0
+            order by created_at desc,
+                     id desc
+            limit :limit
             """;
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
@@ -145,6 +176,47 @@ public class UserActionHistoryRepository {
                         .addValue(ParameterNames.ID, eventId)
                         .addValue(ParameterNames.CONTENT, contentJson)
                         .addValue(ParameterNames.POINTS_DIFFERENCE, pointsDifference)
+        );
+    }
+
+    public List<UserActionHistoryRecord> findLatestEventsByUserId(long userId, List<String> eventTypes, int limit) {
+        if (eventTypes == null || eventTypes.isEmpty() || limit <= 0) {
+            return List.of();
+        }
+        return namedParameterJdbcTemplate.query(
+                FIND_LATEST_EVENTS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource()
+                        .addValue(ParameterNames.USER_ID, userId)
+                        .addValue(ParameterNames.EVENT_TYPES, eventTypes)
+                        .addValue(ParameterNames.LIMIT, limit),
+                (rs, rowNum) -> new UserActionHistoryRecord(
+                        rs.getLong(ColumnNames.ID),
+                        rs.getLong(ColumnNames.USER_ID),
+                        rs.getObject(ColumnNames.CREATED_AT, java.time.OffsetDateTime.class),
+                        rs.getString(ColumnNames.EVENT_TYPE),
+                        rs.getLong(ColumnNames.POINTS_DIFFERENCE),
+                        rs.getString(ColumnNames.CONTENT)
+                )
+        );
+    }
+
+    public List<UserActionHistoryRecord> findLatestNegativeEventsByUserId(long userId, int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        return namedParameterJdbcTemplate.query(
+                FIND_LATEST_NEGATIVE_EVENTS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource()
+                        .addValue(ParameterNames.USER_ID, userId)
+                        .addValue(ParameterNames.LIMIT, limit),
+                (rs, rowNum) -> new UserActionHistoryRecord(
+                        rs.getLong(ColumnNames.ID),
+                        rs.getLong(ColumnNames.USER_ID),
+                        rs.getObject(ColumnNames.CREATED_AT, java.time.OffsetDateTime.class),
+                        rs.getString(ColumnNames.EVENT_TYPE),
+                        rs.getLong(ColumnNames.POINTS_DIFFERENCE),
+                        rs.getString(ColumnNames.CONTENT)
+                )
         );
     }
 

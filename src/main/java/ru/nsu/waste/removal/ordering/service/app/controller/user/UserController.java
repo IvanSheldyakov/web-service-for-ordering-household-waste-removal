@@ -41,6 +41,7 @@ public class UserController {
 
     @GetMapping(Paths.USER_HISTORY)
     public String getUserHistory(@PathVariable(Paths.USER_ID) long userId, Model model) {
+        model.addAttribute(AttributeNames.HISTORY, userFacade.getHistory(userId));
         model.addAttribute(AttributeNames.USER_ID, userId);
         return TemplateNames.USER_HISTORY;
     }

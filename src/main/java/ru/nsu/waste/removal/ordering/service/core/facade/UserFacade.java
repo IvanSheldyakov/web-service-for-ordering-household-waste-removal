@@ -3,9 +3,11 @@ package ru.nsu.waste.removal.ordering.service.core.facade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.nsu.waste.removal.ordering.service.app.view.EcoDashboardViewModel;
+import ru.nsu.waste.removal.ordering.service.app.view.UserHistoryViewModel;
 import ru.nsu.waste.removal.ordering.service.app.view.UserHomeViewModel;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.EcoDashboard;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.EcoDashboardPeriod;
+import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.UserHistory;
 import ru.nsu.waste.removal.ordering.service.core.model.level.Level;
 import ru.nsu.waste.removal.ordering.service.core.model.order.ActiveOrderInfo;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserProfileInfo;
@@ -14,6 +16,7 @@ import ru.nsu.waste.removal.ordering.service.core.repository.level.LevelReposito
 import ru.nsu.waste.removal.ordering.service.core.repository.user.AchieverProfileRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserLeaderboardRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.ecoprofile.EcoDashboardService;
+import ru.nsu.waste.removal.ordering.service.core.service.ecoprofile.UserHistoryService;
 import ru.nsu.waste.removal.ordering.service.core.service.infocard.InfoCardService;
 import ru.nsu.waste.removal.ordering.service.core.service.order.OrderInfoService;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
@@ -37,6 +40,7 @@ public class UserFacade {
     private final UserLeaderboardRepository userLeaderboardRepository;
     private final InfoCardService infoCardService;
     private final EcoDashboardService ecoDashboardService;
+    private final UserHistoryService userHistoryService;
     private final Clock clock;
 
     public UserHomeViewModel getHome(long userId) {
@@ -90,7 +94,24 @@ public class UserFacade {
                                 dashboard.achiever().remaining(),
                                 dashboard.achiever().progressPercent(),
                                 dashboard.achiever().maxLevelReached()
-                        )
+                )
+        );
+    }
+
+    public UserHistoryViewModel getHistory(long userId) {
+        UserHistory history = userHistoryService.getUserHistory(userId);
+
+        return new UserHistoryViewModel(
+                history.userId(),
+                history.currentPoints(),
+                history.items().stream()
+                        .map(item -> new UserHistoryViewModel.ItemViewModel(
+                                item.occurredAt(),
+                                item.description(),
+                                item.pointsDelta(),
+                                item.balanceAfter()
+                        ))
+                        .toList()
         );
     }
 

@@ -9,12 +9,46 @@
 <body>
 <div th:replace="~{fragments/layout :: header('История действий')}"></div>
 <main class="app-shell">
+    <section class="card top-panel">
+        <div>
+            <h2>Текущий баланс</h2>
+            <p><strong><span th:text="${history.currentPoints}">0</span> баллов</strong></p>
+        </div>
+    </section>
+
     <section class="card">
-        <h2>Раздел в разработке</h2>
-        <p>История действий пользователя будет добавлена в следующих итерациях.</p>
+        <h2>Последние действия</h2>
+
+        <p th:if="${#lists.isEmpty(history.items)}">Пока нет действий</p>
+
+        <div class="history-table-wrapper" th:unless="${#lists.isEmpty(history.items)}">
+            <table class="history-table">
+                <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Описание</th>
+                    <th>Δ баллов</th>
+                    <th>Баланс</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="item : ${history.items}">
+                    <td th:text="${#temporals.format(item.occurredAt, 'yyyy-MM-dd HH:mm')}">2026-03-20 10:00</td>
+                    <td th:text="${item.description}">Оформлен заказ</td>
+                    <td th:classappend="${item.pointsDelta > 0 ? ' delta-positive' : (item.pointsDelta < 0 ? ' delta-negative' : ' delta-zero')}"
+                        th:text="${item.pointsDelta > 0 ? '+' + item.pointsDelta : item.pointsDelta}">
+                        0
+                    </td>
+                    <td th:text="${item.balanceAfter}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
         <a th:href="@{/user/{userId}/home(userId=${userId})}">Вернуться на главную</a>
     </section>
 </main>
 </body>
 </html>
-
