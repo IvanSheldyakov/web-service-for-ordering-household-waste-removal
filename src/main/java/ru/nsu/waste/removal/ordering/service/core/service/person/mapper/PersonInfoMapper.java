@@ -3,6 +3,7 @@ package ru.nsu.waste.removal.ordering.service.core.service.person.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
+import ru.nsu.waste.removal.ordering.service.app.form.CourierRegistrationForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
 import ru.nsu.waste.removal.ordering.service.core.model.person.PersonCreationData;
 
@@ -15,6 +16,13 @@ public interface PersonInfoMapper {
     @Mapping(target = "surname", source = "surname", qualifiedByName = "trim")
     @Mapping(target = "patronymic", source = "patronymic", qualifiedByName = "trimToNull")
     PersonCreationData toPersonCreationData(RegistrationForm form);
+
+    @Mapping(target = "phone", source = "phone", qualifiedByName = "trimToLong")
+    @Mapping(target = "email", source = "email", qualifiedByName = "trim")
+    @Mapping(target = "name", source = "name", qualifiedByName = "trim")
+    @Mapping(target = "surname", source = "surname", qualifiedByName = "trim")
+    @Mapping(target = "patronymic", source = "patronymic", qualifiedByName = "trimToNull")
+    PersonCreationData toPersonCreationData(CourierRegistrationForm form);
 
     @Named("trimToLong")
     default long trimToLong(String phone) {
@@ -35,4 +43,3 @@ public interface PersonInfoMapper {
         return trimmed.isEmpty() ? null : trimmed;
     }
 }
-

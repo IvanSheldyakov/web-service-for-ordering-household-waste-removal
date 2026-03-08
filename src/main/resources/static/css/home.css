@@ -261,3 +261,19 @@ h3 {
     font-weight: 600;
 }
 
+.courier-action-form {
+    margin-top: 12px;
+}
+
+.courier-action-form .primary-button {
+    width: auto;
+    padding: 8px 14px;
+}
+
+.success-text {
+    margin: 0;
+    color: #1a5c2a;
+    font-size: 14px;
+    font-weight: 700;
+}
+

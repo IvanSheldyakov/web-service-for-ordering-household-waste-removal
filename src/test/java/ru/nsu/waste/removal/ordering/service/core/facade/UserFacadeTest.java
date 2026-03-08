@@ -84,7 +84,7 @@ class UserFacadeTest {
 
         assertEquals(1, result.activeOrders().size());
         UserHomeViewModel.ActiveOrderViewModel order = result.activeOrders().getFirst();
-        assertEquals("Новая", order.status());
+        assertEquals("Новый", order.status());
         assertEquals(
                 OffsetDateTime.parse("2026-03-03T14:00:00+07:00"),
                 order.pickupFrom()

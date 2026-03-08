@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель курьера</title>
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header('Панель курьера')}"></div>
+<main class="app-shell">
+    <section class="card top-panel">
+        <div>
+            <h2 th:text="${panel.fullName}">Иванов Иван Иванович</h2>
+            <p><strong>Район работы:</strong> <span th:text="${panel.postalCode}">630000</span></p>
+            <p><strong>Всего баллов:</strong> <span th:text="${panel.totalPoints}">0</span></p>
+        </div>
+    </section>
+
+    <section class="card" th:if="${successMessage}">
+        <p class="success-text" th:text="${successMessage}"></p>
+    </section>
+
+    <section class="card" th:if="${errorMessage}">
+        <p class="error-text" th:text="${errorMessage}"></p>
+    </section>
+
+    <section class="card">
+        <h2>Доступные заказы</h2>
+        <p th:if="${#lists.isEmpty(panel.availableOrders)}">Нет доступных заказов в вашем районе</p>
+
+        <div class="order-list" th:unless="${#lists.isEmpty(panel.availableOrders)}">
+            <article class="order-card" th:each="order : ${panel.availableOrders}">
+                <h3>Заказ #<span th:text="${order.orderId}">1</span></h3>
+                <p><strong>Тип вывоза:</strong> <span
+                        th:text="${order.type == 'SEPARATE' ? 'Раздельный' : 'Смешанный'}">Смешанный</span></p>
+                <p>
+                    <strong>Время обслуживания:</strong>
+                    <span th:text="${#temporals.format(order.pickupFrom, 'yyyy-MM-dd HH:mm')}">2026-03-01 10:00</span>
+                    -
+                    <span th:text="${#temporals.format(order.pickupTo, 'yyyy-MM-dd HH:mm')}">2026-03-01 12:00</span>
+                </p>
+                <p>
+                    <strong>Адрес:</strong>
+                    <span th:text="${order.city}">Новосибирск</span>,
+                    <span th:text="${order.detailedAddress}">Ленина, 1</span>,
+                    <span th:text="${order.postalCode}">630000</span>
+                </p>
+                <p><strong>Статус:</strong> <span th:text="${order.status}">Новый</span></p>
+
+                <p th:if="${order.type == 'SEPARATE' and #lists.isEmpty(order.fractions)}">
+                    <strong>Фракции:</strong> Не указаны
+                </p>
+                <p th:if="${order.type == 'SEPARATE' and !#lists.isEmpty(order.fractions)}">
+                    <strong>Фракции:</strong> <span th:text="${#strings.listJoin(order.fractions, ', ')}">Бумага</span>
+                </p>
+
+                <span class="slot-badge-green" th:if="${order.greenChosen}">Зелёный слот</span>
+
+                <form class="courier-action-form"
+                      th:action="@{/courier/{courierId}/orders/take(courierId=${panel.courierId})}"
+                      method="post">
+                    <input type="hidden" name="orderId" th:value="${order.orderId}">
+                    <input type="hidden" name="orderCreatedAt" th:value="${order.orderCreatedAt}">
+                    <button class="primary-button" type="submit">Взять заказ</button>
+                </form>
+            </article>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Назначенные заказы</h2>
+        <p th:if="${#lists.isEmpty(panel.assignedOrders)}">У вас нет назначенных заказов</p>
+
+        <div class="order-list" th:unless="${#lists.isEmpty(panel.assignedOrders)}">
+            <article class="order-card" th:each="order : ${panel.assignedOrders}">
+                <h3>Заказ #<span th:text="${order.orderId}">1</span></h3>
+                <p><strong>Тип вывоза:</strong> <span
+                        th:text="${order.type == 'SEPARATE' ? 'Раздельный' : 'Смешанный'}">Смешанный</span></p>
+                <p>
+                    <strong>Время обслуживания:</strong>
+                    <span th:text="${#temporals.format(order.pickupFrom, 'yyyy-MM-dd HH:mm')}">2026-03-01 10:00</span>
+                    -
+                    <span th:text="${#temporals.format(order.pickupTo, 'yyyy-MM-dd HH:mm')}">2026-03-01 12:00</span>
+                </p>
+                <p>
+                    <strong>Адрес:</strong>
+                    <span th:text="${order.city}">Новосибирск</span>,
+                    <span th:text="${order.detailedAddress}">Ленина, 1</span>,
+                    <span th:text="${order.postalCode}">630000</span>
+                </p>
+                <p><strong>Статус:</strong> <span th:text="${order.status}">Назначен</span></p>
+
+                <p th:if="${order.type == 'SEPARATE' and #lists.isEmpty(order.fractions)}">
+                    <strong>Фракции:</strong> Не указаны
+                </p>
+                <p th:if="${order.type == 'SEPARATE' and !#lists.isEmpty(order.fractions)}">
+                    <strong>Фракции:</strong> <span th:text="${#strings.listJoin(order.fractions, ', ')}">Бумага</span>
+                </p>
+
+                <span class="slot-badge-green" th:if="${order.greenChosen}">Зелёный слот</span>
+
+                <form class="courier-action-form"
+                      th:action="@{/courier/{courierId}/orders/complete(courierId=${panel.courierId})}"
+                      method="post">
+                    <input type="hidden" name="orderId" th:value="${order.orderId}">
+                    <input type="hidden" name="orderCreatedAt" th:value="${order.orderCreatedAt}">
+                    <button class="primary-button" type="submit">Отметить выполненным</button>
+                </form>
+            </article>
+        </div>
+    </section>
+</main>
+</body>
+</html>

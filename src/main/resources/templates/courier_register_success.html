@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Курьер зарегистрирован</title>
+    <link rel="stylesheet" th:href="@{/css/registration.css}">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header('Регистрация курьера')}"></div>
+<main class="app-shell">
+    <section class="card">
+        <h2>Регистрация завершена</h2>
+        <p><strong>ФИО:</strong> <span th:text="${result.fullName}">Иванов Иван Иванович</span></p>
+        <p><strong>Район (postal code):</strong> <span th:text="${result.postalCode}">630000</span></p>
+        <p><strong>Баллы:</strong> <span th:text="${result.totalPoints}">0</span></p>
+
+        <p>
+            <a th:href="@{/courier/{courierId}/home(courierId=${result.courierId})}">Перейти в панель</a>
+        </p>
+        <p>
+            <a th:href="@{/courier/login}">Страница входа</a>
+        </p>
+    </section>
+</main>
+</body>
+</html>

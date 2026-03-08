@@ -3,19 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Регистрация: шаг 1</title>
+    <title>Регистрация курьера</title>
     <link rel="stylesheet" th:href="@{/css/registration.css}">
 </head>
 <body>
-<div th:replace="~{fragments/layout :: header('Регистрация пользователя')}"></div>
+<div th:replace="~{fragments/layout :: header('Регистрация курьера')}"></div>
 <main class="app-shell">
     <section class="card">
-        <h2>Шаг 1. Данные пользователя и адрес</h2>
-        <p class="hint">Введите базовые данные. Поля, отмеченные *, обязательны.</p>
+        <h2>Регистрация курьера</h2>
+        <p class="hint">Укажите район работы (по почтовому индексу) и часовой пояс.</p>
 
-        <p class="error" th:if="${phoneConflictMessage}" th:text="${phoneConflictMessage}"></p>
-
-        <form th:action="@{/registration}" th:object="${registrationForm}" method="post">
+        <form th:action="@{/courier/registration}" th:object="${courierRegistrationForm}" method="post">
             <div class="form-grid">
                 <label>Телефон*
                     <input type="text" th:field="*{phone}" placeholder="79001234567">
@@ -23,7 +21,7 @@
                 </label>
 
                 <label>Электронная почта*
-                    <input type="email" th:field="*{email}" placeholder="Введите электронную почту">
+                    <input type="email" th:field="*{email}" placeholder="courier@example.com">
                     <span class="error" th:errors="*{email}"></span>
                 </label>
 
@@ -42,35 +40,15 @@
                     <span class="error" th:errors="*{patronymic}"></span>
                 </label>
 
-                <label>Код страны*
-                    <input type="text" th:field="*{countryCode}" placeholder="RU">
-                    <span class="error" th:errors="*{countryCode}"></span>
-                </label>
-
-                <label>Регион*
-                    <input type="text" th:field="*{region}">
-                    <span class="error" th:errors="*{region}"></span>
-                </label>
-
-                <label>Город*
-                    <input type="text" th:field="*{city}">
-                    <span class="error" th:errors="*{city}"></span>
-                </label>
-
-                <label>Почтовый индекс*
+                <label>Почтовый индекс района*
                     <input type="text" th:field="*{postalCode}">
                     <span class="error" th:errors="*{postalCode}"></span>
                 </label>
 
-                <label class="full-width">Подробный адрес*
-                    <input type="text" th:field="*{detailedAddress}" placeholder="Улица, дом, квартира">
-                    <span class="error" th:errors="*{detailedAddress}"></span>
-                </label>
-
-                <label>Часовой пояс (Россия)*
+                <label>Часовой пояс*
                     <select th:field="*{timezone}" required>
                         <option value="" disabled
-                                th:selected="${registrationForm.timezone == null || #strings.isEmpty(registrationForm.timezone)}">
+                                th:selected="${courierRegistrationForm.timezone == null || #strings.isEmpty(courierRegistrationForm.timezone)}">
                             Выберите часовой пояс
                         </option>
                         <option th:each="tz : ${timezones}" th:value="${tz.id}" th:text="${tz.title}"></option>
@@ -78,7 +56,7 @@
                     <span class="error" th:errors="*{timezone}"></span>
                 </label>
             </div>
-            <button type="submit">Далее</button>
+            <button type="submit">Зарегистрироваться</button>
         </form>
     </section>
 </main>

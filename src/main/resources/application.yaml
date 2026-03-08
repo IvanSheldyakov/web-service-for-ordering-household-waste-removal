@@ -1,6 +1,8 @@
 spring:
   application:
     name: wros
+  thymeleaf:
+    encoding: UTF-8
   datasource:
     url: jdbc:postgresql://localhost:5432/waste_removal
     username: postgres
@@ -9,3 +11,10 @@ spring:
     url: jdbc:postgresql://localhost:5432/waste_removal
     user: postgres
     password: postgres
+
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true

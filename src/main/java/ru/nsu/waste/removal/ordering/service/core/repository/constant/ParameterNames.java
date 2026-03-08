@@ -46,6 +46,8 @@ public final class ParameterNames {
 
     public static final String USER_ID = "userId";
 
+    public static final String COURIER_ID = "courierId";
+
     public static final String USER_IDS = "userIds";
 
     public static final String LEVEL_ID = "levelId";
@@ -103,6 +105,12 @@ public final class ParameterNames {
     public static final String ORDER_ID = "orderId";
 
     public static final String ORDER_CREATED_AT = "orderCreatedAt";
+
+    public static final String COMPLETED_AT = "completedAt";
+
+    public static final String COURIER_POSTAL_CODE = "courierPostalCode";
+
+    public static final String DELTA = "delta";
 
     public static final String FRACTION_ID = "fractionId";
 

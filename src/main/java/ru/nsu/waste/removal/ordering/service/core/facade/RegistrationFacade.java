@@ -10,6 +10,7 @@ import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
 import ru.nsu.waste.removal.ordering.service.app.view.RegistrationQuizViewModel;
 import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
+import ru.nsu.waste.removal.ordering.service.app.view.TimezoneOptionViewModel;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizOption;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizQuestion;
@@ -45,8 +46,10 @@ public class RegistrationFacade {
     private final TimezoneService timezoneService;
     private final PersonInfoService personInfoService;
 
-    public List<String> getAvailableTimezones() {
-        return timezoneService.getAvailableTimezones();
+    public List<TimezoneOptionViewModel> getAvailableTimezones() {
+        return timezoneService.getAvailableTimezoneOptions().stream()
+                .map(option -> new TimezoneOptionViewModel(option.id(), option.title()))
+                .toList();
     }
 
     public boolean isRegistrationReadyForQuiz(RegistrationForm form) {

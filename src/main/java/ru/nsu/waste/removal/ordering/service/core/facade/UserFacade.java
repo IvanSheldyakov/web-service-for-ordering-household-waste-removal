@@ -228,10 +228,10 @@ public class UserFacade {
         }
 
         return switch (status.trim().toUpperCase(Locale.ROOT)) {
-            case "NEW" -> "Новая";
-            case "ASSIGNED" -> "Назначена";
-            case "DONE" -> "Выполнена";
-            case "CANCELLED" -> "Отменена";
+            case "NEW" -> "Новый";
+            case "ASSIGNED" -> "Назначен";
+            case "DONE" -> "Выполнен";
+            case "CANCELLED" -> "Отменен";
             default -> "Неизвестно";
         };
     }
