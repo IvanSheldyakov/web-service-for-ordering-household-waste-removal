@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход пользователя</title>
+    <link rel="stylesheet" th:href="@{/css/registration.css}">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header('Вход пользователя')}"></div>
+<main class="app-shell">
+    <section class="card">
+        <h2>Вход пользователя</h2>
+        <p class="hint">Вход по номеру телефона.</p>
+
+        <form th:action="@{/user/login}" th:object="${userLoginForm}" method="post">
+            <div class="form-grid">
+                <label>Телефон*
+                    <input type="text" th:field="*{phone}" placeholder="79001234567">
+                    <span class="error" th:errors="*{phone}"></span>
+                </label>
+            </div>
+            <button type="submit">Войти</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

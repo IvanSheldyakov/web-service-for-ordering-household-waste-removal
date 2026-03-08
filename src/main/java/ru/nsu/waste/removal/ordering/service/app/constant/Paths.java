@@ -8,6 +8,24 @@ public final class Paths {
 
     public static final String REGISTRATION = "/registration";
 
+    public static final String COURIER = "/courier";
+
+    public static final String COURIER_ID = "courierId";
+
+    public static final String COURIER_WITH_ID = COURIER + "/{" + COURIER_ID + "}";
+
+    public static final String COURIER_REGISTRATION = COURIER + "/registration";
+
+    public static final String COURIER_LOGIN = COURIER + "/login";
+
+    public static final String COURIER_HOME = "/home";
+
+    public static final String COURIER_PANEL = COURIER_WITH_ID + COURIER_HOME;
+
+    public static final String COURIER_TAKE_ORDER = COURIER_WITH_ID + "/orders/take";
+
+    public static final String COURIER_COMPLETE_ORDER = COURIER_WITH_ID + "/orders/complete";
+
     public static final String QUIZ = "/quiz";
 
     public static final String REGISTRATION_QUIZ = REGISTRATION + QUIZ;
@@ -17,6 +35,8 @@ public final class Paths {
     public static final String USER = "/user";
 
     public static final String USER_WITH_ID = USER + "/{" + USER_ID + "}";
+
+    public static final String USER_LOGIN = USER + "/login";
 
     public static final String HOME = "/home";
 

@@ -42,4 +42,10 @@ public class UserInfoService {
                         "User with id = %s is not found".formatted(userId)
                 ));
     }
+
+    public long findUserIdByPhone(String phone) {
+        long normalizedPhone = Long.parseLong(phone.trim());
+        return userInfoRepository.findUserIdByPhone(normalizedPhone)
+                .orElseThrow(() -> new IllegalStateException("Пользователь с таким телефоном не найден"));
+    }
 }

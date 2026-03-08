@@ -96,6 +96,13 @@ public class UserInfoRepository {
             where ui.id = :userId
             """;
 
+    private static final String FIND_USER_ID_BY_PHONE_QUERY = """
+            select ui.id
+            from user_info ui
+                     join person_info p on p.id = ui.person_id
+            where p.phone = :phone
+            """;
+
     private static final String UPDATE_REWARD_STATE_QUERY = """
             update user_info
             set total_points = :totalPoints,
@@ -216,6 +223,14 @@ public class UserInfoRepository {
                         rs.getString(ColumnNames.POSTAL_CODE),
                         rs.getString(ColumnNames.TIMEZONE)
                 )
+        ).stream().findFirst();
+    }
+
+    public Optional<Long> findUserIdByPhone(long phone) {
+        return namedParameterJdbcTemplate.query(
+                FIND_USER_ID_BY_PHONE_QUERY,
+                new MapSqlParameterSource(ParameterNames.PHONE, phone),
+                (rs, rowNum) -> rs.getLong(ColumnNames.ID)
         ).stream().findFirst();
     }
 }

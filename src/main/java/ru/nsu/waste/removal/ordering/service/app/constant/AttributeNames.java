@@ -8,6 +8,20 @@ public final class AttributeNames {
 
     public static final String TIMEZONES = "timezones";
 
+    public static final String COURIER_REGISTRATION_FORM = "courierRegistrationForm";
+
+    public static final String COURIER_LOGIN_FORM = "courierLoginForm";
+
+    public static final String USER_LOGIN_FORM = "userLoginForm";
+
+    public static final String COURIER_ID = "courierId";
+
+    public static final String PANEL = "panel";
+
+    public static final String ERROR_MESSAGE = "errorMessage";
+
+    public static final String SUCCESS_MESSAGE = "successMessage";
+
     public static final String MESSAGE = "message";
 
     public static final String REGISTRATION_FORM = "registrationForm";

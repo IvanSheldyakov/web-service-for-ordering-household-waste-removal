@@ -66,6 +66,8 @@ public final class ColumnNames {
 
     public static final String USER_ID = "user_id";
 
+    public static final String COURIER_ID = "courier_id";
+
     public static final String LEVEL_ID = "level_id";
 
     public static final String EVENT_TYPE = "event_type";
@@ -98,6 +100,8 @@ public final class ColumnNames {
 
     public static final String ASSIGNED_AT = "assigned_at";
 
+    public static final String COMPLETED_AT = "completed_at";
+
     public static final String STATUS = "status";
 
     public static final String TYPE = "type";
@@ -123,6 +127,8 @@ public final class ColumnNames {
     public static final String HABIT_STRENGTH = "habit_strength";
 
     public static final String ORDER_ID = "order_id";
+
+    public static final String FULL_NAME = "full_name";
 
     public static final String COST_POINTS = "cost_points";
 
