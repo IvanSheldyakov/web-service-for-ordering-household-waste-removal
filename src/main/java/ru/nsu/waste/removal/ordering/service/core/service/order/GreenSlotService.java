@@ -2,11 +2,10 @@ package ru.nsu.waste.removal.ordering.service.core.service.order;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.nsu.waste.removal.ordering.service.core.model.cluster.GeoClusterContext;
 import ru.nsu.waste.removal.ordering.service.core.model.order.GreenSlot;
 import ru.nsu.waste.removal.ordering.service.core.model.order.SlotOption;
-import ru.nsu.waste.removal.ordering.service.core.model.user.UserGreenSlotContext;
-import ru.nsu.waste.removal.ordering.service.core.repository.order.GreenSlotRepository;
-import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
+import ru.nsu.waste.removal.ordering.service.core.service.cluster.GeoClusterService;
 
 import java.time.Clock;
 import java.time.DateTimeException;
@@ -29,13 +28,12 @@ public class GreenSlotService {
     private static final int HOURS_IN_DAY = 24;
     private static final int DAYS_VISIBLE = 2;
 
-    private final UserInfoService userInfoService;
-    private final GreenSlotRepository greenSlotRepository;
+    private final GeoClusterService geoClusterService;
     private final Clock clock;
 
     public List<SlotOption> getSlotOptions(long userId) {
-        UserGreenSlotContext userContext = userInfoService.getGreenSlotContextByUserId(userId);
-        ZoneId userZoneId = resolveZoneId(userContext);
+        GeoClusterContext clusterContext = geoClusterService.getUserClusterContext(userId);
+        ZoneId userZoneId = resolveZoneId(userId, clusterContext.timezone());
         ZonedDateTime nowInUserZone = ZonedDateTime.now(clock).withZoneSameInstant(userZoneId);
 
         List<GreenSlot> availableSlots = buildAvailableSlots(nowInUserZone, userZoneId);
@@ -48,9 +46,9 @@ public class GreenSlotService {
                 .atStartOfDay(userZoneId)
                 .toOffsetDateTime();
 
-        Set<SlotKey> plannedSlotKeys = greenSlotRepository.findPlannedSlotsInPeriod(
+        Set<SlotKey> plannedSlotKeys = geoClusterService.findPlannedSlotsInCluster(
                         userId,
-                        userContext.postalCode(),
+                        clusterContext.clusterKey(),
                         periodFrom,
                         periodTo
                 ).stream()
@@ -69,12 +67,12 @@ public class GreenSlotService {
                 .toList();
     }
 
-    private ZoneId resolveZoneId(UserGreenSlotContext userContext) {
+    private ZoneId resolveZoneId(long userId, String timezone) {
         try {
-            return ZoneId.of(userContext.timezone());
+            return ZoneId.of(timezone);
         } catch (DateTimeException exception) {
             throw new IllegalStateException(
-                    "User timezone is invalid for user id = %s".formatted(userContext.userId()),
+                    "User timezone is invalid for user id = %s".formatted(userId),
                     exception
             );
         }

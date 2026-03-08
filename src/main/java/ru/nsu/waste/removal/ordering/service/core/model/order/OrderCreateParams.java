@@ -8,7 +8,7 @@ public record OrderCreateParams(
         OffsetDateTime pickupFrom,
         OffsetDateTime pickupTo,
         boolean greenChosen,
-        String postalCode,
+        String clusterKey,
         long costPoints
 ) {
 }
