@@ -102,11 +102,14 @@ class GreenSlotServiceE2ETest {
         OffsetDateTime cancelledTomorrow12From = slotStartAt(2026, 2, 19, 12);
         addOrder(neighborUserId, PRIMARY_POSTAL_CODE, "CANCELLED", cancelledTomorrow12From, cancelledTomorrow12From.plusHours(2), 4);
 
+        OffsetDateTime doneTomorrow20From = slotStartAt(2026, 2, 19, 20);
+        addOrder(neighborUserId, PRIMARY_POSTAL_CODE, "DONE", doneTomorrow20From, doneTomorrow20From.plusHours(2), 5);
+
         OffsetDateTime ownTomorrow14From = slotStartAt(2026, 2, 19, 14);
-        addOrder(currentUserId, PRIMARY_POSTAL_CODE, "NEW", ownTomorrow14From, ownTomorrow14From.plusHours(2), 5);
+        addOrder(currentUserId, PRIMARY_POSTAL_CODE, "NEW", ownTomorrow14From, ownTomorrow14From.plusHours(2), 6);
 
         OffsetDateTime otherDistrictTomorrow16From = slotStartAt(2026, 2, 19, 16);
-        addOrder(anotherDistrictUserId, SECONDARY_POSTAL_CODE, "NEW", otherDistrictTomorrow16From, otherDistrictTomorrow16From.plusHours(2), 6);
+        addOrder(anotherDistrictUserId, SECONDARY_POSTAL_CODE, "NEW", otherDistrictTomorrow16From, otherDistrictTomorrow16From.plusHours(2), 7);
 
         List<GreenSlot> slots = greenSlotService.getSlotOptions(currentUserId).stream()
                 .filter(slot -> slot.green())

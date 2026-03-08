@@ -197,6 +197,28 @@ class OrderCreateServiceE2ETest {
         assertEquals(0L, countEvents(userId, UserActionEventType.ORDER_CREATED));
     }
 
+    @Test
+    void createOrder_storesClusterKeySnapshotInOrderInfoPostalCode() {
+        long userId = registerAchiever("77008880007", PRIMARY_POSTAL_CODE);
+
+        SlotOption firstSlot = findRegularSlot(userId);
+        long firstOrderId = orderCreateService.createOrder(
+                userId,
+                new OrderCreateCommand("MIXED", firstSlot.key(), List.of())
+        );
+
+        updateUserPostalCode(userId, OTHER_POSTAL_CODE);
+
+        SlotOption secondSlot = findRegularSlot(userId);
+        long secondOrderId = orderCreateService.createOrder(
+                userId,
+                new OrderCreateCommand("MIXED", secondSlot.key(), List.of())
+        );
+
+        assertEquals(PRIMARY_POSTAL_CODE, findOrderPostalCode(firstOrderId));
+        assertEquals(OTHER_POSTAL_CODE, findOrderPostalCode(secondOrderId));
+    }
+
     private SlotOption findRegularSlot(long userId) {
         return greenSlotService.getSlotOptions(userId).stream()
                 .filter(slot -> !slot.green())
@@ -301,6 +323,34 @@ class OrderCreateServiceE2ETest {
                 eventType.dbName()
         );
         return count == null ? 0L : count;
+    }
+
+    private void updateUserPostalCode(long userId, String newPostalCode) {
+        jdbcTemplate.update(
+                """
+                        update address a
+                        set postal_code = ?
+                        from user_info ui
+                        where ui.address_id = a.id
+                          and ui.id = ?
+                        """,
+                newPostalCode,
+                userId
+        );
+    }
+
+    private String findOrderPostalCode(long orderId) {
+        return jdbcTemplate.queryForObject(
+                """
+                        select postal_code
+                        from order_info
+                        where id = ?
+                        order by created_at desc
+                        limit 1
+                        """,
+                String.class,
+                orderId
+        );
     }
 
     private long findUserTotalPoints(long userId) {

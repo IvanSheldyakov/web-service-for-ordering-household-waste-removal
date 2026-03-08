@@ -66,7 +66,7 @@ public class OrderCreateRepository {
                         .addValue(ParameterNames.PICKUP_FROM, params.pickupFrom())
                         .addValue(ParameterNames.PICKUP_TO, params.pickupTo())
                         .addValue(ParameterNames.GREEN_CHOSEN, params.greenChosen())
-                        .addValue(ParameterNames.POSTAL_CODE, params.postalCode())
+                        .addValue(ParameterNames.POSTAL_CODE, params.clusterKey())
                         .addValue(ParameterNames.COST_POINTS, params.costPoints()),
                 (rs, rowNum) -> new OrderKey(
                         rs.getLong(ColumnNames.ID),

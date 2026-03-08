@@ -5,18 +5,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.model.cluster.GeoClusterKey;
 import ru.nsu.waste.removal.ordering.service.core.model.event.OrderCreatedEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderCreateParams;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderKey;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderType;
 import ru.nsu.waste.removal.ordering.service.core.model.order.SlotOption;
-import ru.nsu.waste.removal.ordering.service.core.model.user.UserGreenSlotContext;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.order.OrderCreateRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.order.WasteFractionRepository;
+import ru.nsu.waste.removal.ordering.service.core.service.cluster.GeoClusterService;
 import ru.nsu.waste.removal.ordering.service.core.service.order.mapper.OrderCreateParamsMapper;
-import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -33,7 +33,7 @@ public class OrderCreateService {
     private static final String INVALID_FRACTIONS_MESSAGE = "Некорректный выбор фракций";
 
     private final GreenSlotService greenSlotService;
-    private final UserInfoService userInfoService;
+    private final GeoClusterService geoClusterService;
     private final WasteFractionRepository wasteFractionRepository;
     private final OrderCreateRepository orderCreateRepository;
     private final OrderCreateParamsMapper orderCreateParamsMapper;
@@ -46,12 +46,12 @@ public class OrderCreateService {
         SlotOption selectedSlot = resolveSelectedSlot(userId, command.slotKey());
         List<Long> fractionIds = normalizeFractions(command.fractionIds(), type);
 
-        UserGreenSlotContext userContext = userInfoService.getGreenSlotContextByUserId(userId);
+        GeoClusterKey clusterKey = geoClusterService.getClusterKeyForOrderCreation(userId);
         OrderCreateParams orderCreateParams = orderCreateParamsMapper.toOrderCreateParams(
                 userId,
                 type,
                 selectedSlot,
-                userContext,
+                clusterKey,
                 DEFAULT_COST_POINTS
         );
         OrderKey orderKey = orderCreateRepository.createOrder(orderCreateParams);

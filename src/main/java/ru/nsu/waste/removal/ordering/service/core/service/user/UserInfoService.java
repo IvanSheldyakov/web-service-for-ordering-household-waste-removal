@@ -9,6 +9,7 @@ import ru.nsu.waste.removal.ordering.service.core.model.user.UserProfileInfo;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.repository.level.LevelRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
+import ru.nsu.waste.removal.ordering.service.core.service.cluster.GeoClusterService;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +17,7 @@ public class UserInfoService {
 
     private final UserInfoRepository userInfoRepository;
     private final LevelRepository levelRepository;
+    private final GeoClusterService geoClusterService;
 
     @Transactional
     public long add(UserType userType, long addressId, long personId) {
@@ -37,10 +39,12 @@ public class UserInfoService {
     }
 
     public UserGreenSlotContext getGreenSlotContextByUserId(long userId) {
-        return userInfoRepository.findGreenSlotContextByUserId(userId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "User with id = %s is not found".formatted(userId)
-                ));
+        var clusterContext = geoClusterService.getUserClusterContext(userId);
+        return new UserGreenSlotContext(
+                userId,
+                clusterContext.clusterKey().value(),
+                clusterContext.timezone()
+        );
     }
 
     public long findUserIdByPhone(String phone) {
