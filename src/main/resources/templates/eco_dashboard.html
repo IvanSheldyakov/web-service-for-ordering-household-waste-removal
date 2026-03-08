@@ -70,7 +70,7 @@
     </section>
 
     <section class="card" th:if="${dashboard.userType == 'ACHIEVER' and dashboard.achiever != null}">
-        <h2>Прогресс Achiever</h2>
+        <h2>Прогресс достигателя</h2>
         <p><strong>Текущий уровень:</strong> <span th:text="${dashboard.achiever.levelId}">1</span></p>
         <div class="progress">
             <div class="progress-bar" th:style="'width:' + ${dashboard.achiever.progressPercent} + '%'"> </div>

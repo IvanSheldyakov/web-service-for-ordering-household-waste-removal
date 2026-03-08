@@ -68,7 +68,7 @@ class UserHistoryServiceE2ETest {
 
     @Test
     void getUserHistory_returnsLatest10WithFilteringAndBalanceAfter() {
-        long userId = createUser("75550000001", "100001", 500L, 180L);
+        long userId = createUser("75550000001", "100001", 500L, 180L, "Asia/Novosibirsk");
         long paperId = findFractionIdByType("PAPER");
         long glassId = findFractionIdByType("GLASS");
 
@@ -193,20 +193,20 @@ class UserHistoryServiceE2ETest {
         assertEquals(10, history.items().size());
 
         assertEquals(
-                OffsetDateTime.parse("2026-03-20T12:00:00+00:00"),
+                OffsetDateTime.parse("2026-03-20T19:00:00+07:00"),
                 history.items().getFirst().occurredAt()
         );
         assertTrue(history.items().getFirst().description().contains("раздельный вывоз"));
         assertTrue(history.items().getFirst().description().contains("Бумага"));
         assertTrue(history.items().getFirst().description().contains("Стекло"));
-        assertTrue(history.items().getFirst().description().contains("2026-03-20 10:00-12:00"));
+        assertTrue(history.items().getFirst().description().contains("слот: 2026-03-20 17:00-19:00"));
         assertTrue(history.items().getFirst().description().contains("зелёный слот"));
 
         assertFalse(history.items().stream().anyMatch(
-                item -> item.occurredAt().equals(OffsetDateTime.parse("2026-03-20T10:30:00+00:00"))
+                item -> item.occurredAt().equals(OffsetDateTime.parse("2026-03-20T17:30:00+07:00"))
         ));
         assertFalse(history.items().stream().anyMatch(
-                item -> item.occurredAt().equals(OffsetDateTime.parse("2026-03-20T10:20:00+00:00"))
+                item -> item.occurredAt().equals(OffsetDateTime.parse("2026-03-20T17:20:00+07:00"))
         ));
 
         assertTrue(history.items().stream().anyMatch(item -> item.pointsDelta() == -15L));
@@ -229,7 +229,7 @@ class UserHistoryServiceE2ETest {
 
     @Test
     void getUserHistory_whenInvalidContent_usesFallbackDescriptions() {
-        long userId = createUser("75550000002", "100002", 100L, 50L);
+        long userId = createUser("75550000002", "100002", 100L, 50L, "UTC");
 
         addEvent(
                 userId,
@@ -253,7 +253,7 @@ class UserHistoryServiceE2ETest {
         assertEquals("Выполнено эко-задание", history.items().get(1).description());
     }
 
-    private long createUser(String phone, String postalCode, long totalPoints, long currentPoints) {
+    private long createUser(String phone, String postalCode, long totalPoints, long currentPoints, String timezone) {
         Long personId = jdbcTemplate.queryForObject(
                 """
                         insert into person_info(phone, email, name, surname, patronymic)
@@ -280,7 +280,7 @@ class UserHistoryServiceE2ETest {
                 "City",
                 "Region",
                 "Street 1",
-                "UTC"
+                timezone
         );
 
         Long userId = jdbcTemplate.queryForObject(

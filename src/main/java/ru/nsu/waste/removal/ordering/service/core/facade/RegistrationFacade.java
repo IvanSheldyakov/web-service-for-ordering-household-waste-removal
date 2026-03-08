@@ -19,6 +19,10 @@ import ru.nsu.waste.removal.ordering.service.core.service.registration.Registrat
 import ru.nsu.waste.removal.ordering.service.core.service.registrationquiz.RegistrationQuizService;
 import ru.nsu.waste.removal.ordering.service.core.service.timezone.TimezoneService;
 
+import java.time.DateTimeException;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -78,7 +82,8 @@ public class RegistrationFacade {
     }
 
     public RegistrationResultViewModel register(RegistrationForm form, QuizAnswerForm quizAnswerForm) {
-        return toResultViewModel(registrationService.register(form, quizAnswerForm));
+        UserRegistrationResult result = registrationService.register(form, quizAnswerForm);
+        return toResultViewModel(result, resolveZoneId(form.getTimezone()));
     }
 
     public RegistrationResultViewModel registerAndCompleteSession(
@@ -127,7 +132,7 @@ public class RegistrationFacade {
         }
     }
 
-    private RegistrationResultViewModel toResultViewModel(UserRegistrationResult result) {
+    private RegistrationResultViewModel toResultViewModel(UserRegistrationResult result, ZoneId userZoneId) {
         return new RegistrationResultViewModel(
                 result.userId(),
                 result.userTypeName(),
@@ -148,7 +153,7 @@ public class RegistrationFacade {
                                 task.title(),
                                 task.description(),
                                 task.points(),
-                                task.expiredAt()
+                                convertToUserTimezone(task.expiredAt(), userZoneId)
                         ))
                         .toList(),
                 result.achievements().stream()
@@ -163,9 +168,24 @@ public class RegistrationFacade {
                                 card.id(),
                                 card.title(),
                                 card.description()
-                        ))
+                ))
                         .toList()
         );
+    }
+
+    private ZoneId resolveZoneId(String timezone) {
+        try {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException exception) {
+            return ZoneOffset.UTC;
+        }
+    }
+
+    private OffsetDateTime convertToUserTimezone(OffsetDateTime value, ZoneId userZoneId) {
+        if (value == null) {
+            return null;
+        }
+        return value.atZoneSameInstant(userZoneId).toOffsetDateTime();
     }
 
     private RegistrationQuizViewModel.QuestionViewModel toQuestionView(

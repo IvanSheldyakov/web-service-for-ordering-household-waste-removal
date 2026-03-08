@@ -22,8 +22,12 @@ import ru.nsu.waste.removal.ordering.service.core.service.order.OrderInfoService
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
 
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 @Service
@@ -45,9 +49,10 @@ public class UserFacade {
 
     public UserHomeViewModel getHome(long userId) {
         UserProfileInfo profile = userInfoService.getProfileByUserId(userId);
+        ZoneId userZoneId = resolveUserZoneId(userId);
 
         List<UserHomeViewModel.ActiveOrderViewModel> activeOrders = orderInfoService.findActiveOrders(userId).stream()
-                .map(this::toViewModel)
+                .map(order -> toViewModel(order, userZoneId))
                 .toList();
 
         return new UserHomeViewModel(
@@ -144,7 +149,7 @@ public class UserFacade {
     private UserHomeViewModel.AchieverMotivationViewModel buildAchieverMotivation(long userId, long totalPoints) {
         int levelId = achieverProfileRepository.findCurrentLevelId(userId)
                 .orElseThrow(() -> new IllegalStateException(
-                        "Achiever profile is not found for user id = %s".formatted(userId)
+                        "Профиль достигателя не найден для пользователя с id = %s".formatted(userId)
                 ));
 
         Optional<Level> nextLevel = levelRepository.findNextTargetLevelByTotalPoints(totalPoints);
@@ -190,15 +195,45 @@ public class UserFacade {
         return new UserHomeViewModel.ExplorerMotivationViewModel(cards);
     }
 
-    private UserHomeViewModel.ActiveOrderViewModel toViewModel(ActiveOrderInfo order) {
+    private UserHomeViewModel.ActiveOrderViewModel toViewModel(ActiveOrderInfo order, ZoneId userZoneId) {
         return new UserHomeViewModel.ActiveOrderViewModel(
                 order.orderId(),
                 order.type(),
-                order.status(),
-                order.pickupFrom(),
-                order.pickupTo(),
+                localizeOrderStatus(order.status()),
+                convertToUserTimezone(order.pickupFrom(), userZoneId),
+                convertToUserTimezone(order.pickupTo(), userZoneId),
                 order.fractions()
         );
+    }
+
+    private ZoneId resolveUserZoneId(long userId) {
+        String timezone = userInfoService.getGreenSlotContextByUserId(userId).timezone();
+        try {
+            return ZoneId.of(timezone);
+        } catch (DateTimeException exception) {
+            return ZoneOffset.UTC;
+        }
+    }
+
+    private OffsetDateTime convertToUserTimezone(OffsetDateTime value, ZoneId userZoneId) {
+        if (value == null) {
+            return null;
+        }
+        return value.atZoneSameInstant(userZoneId).toOffsetDateTime();
+    }
+
+    private String localizeOrderStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return "Неизвестно";
+        }
+
+        return switch (status.trim().toUpperCase(Locale.ROOT)) {
+            case "NEW" -> "Новая";
+            case "ASSIGNED" -> "Назначена";
+            case "DONE" -> "Выполнена";
+            case "CANCELLED" -> "Отменена";
+            default -> "Неизвестно";
+        };
     }
 
     private int calculateProgressPercent(long totalPoints, long requiredPoints) {
