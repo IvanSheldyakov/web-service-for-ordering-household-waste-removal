@@ -3,7 +3,10 @@ package ru.nsu.waste.removal.ordering.service.core.facade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.nsu.waste.removal.ordering.service.app.form.CourierOrderActionForm;
+import ru.nsu.waste.removal.ordering.service.app.form.CourierOrderGroupActionForm;
 import ru.nsu.waste.removal.ordering.service.app.view.CourierPanelViewModel;
+import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierOrderGroup;
+import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierOrderGroupKey;
 import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierOrderInfo;
 import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierPanel;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderKey;
@@ -32,17 +35,21 @@ public class CourierFacade {
                 panel.fullName(),
                 panel.postalCode(),
                 panel.totalPoints(),
-                panel.availableOrders().stream()
-                        .map(order -> toViewModel(order, courierZoneId))
+                panel.availableOrderGroups().stream()
+                        .map(group -> toGroupViewModel(group, courierZoneId, true))
                         .toList(),
-                panel.assignedOrders().stream()
-                        .map(order -> toViewModel(order, courierZoneId))
+                panel.assignedOrderGroups().stream()
+                        .map(group -> toGroupViewModel(group, courierZoneId, false))
                         .toList()
         );
     }
 
     public void takeOrder(long courierId, CourierOrderActionForm form) {
         courierPanelService.takeOrder(courierId, toOrderKey(form));
+    }
+
+    public void takeOrderGroup(long courierId, CourierOrderGroupActionForm form) {
+        courierPanelService.takeOrderGroup(courierId, toOrderGroupKey(form), form.getExpectedOrderCount());
     }
 
     public void completeOrder(long courierId, CourierOrderActionForm form) {
@@ -56,7 +63,46 @@ public class CourierFacade {
         return new OrderKey(form.getOrderId(), form.getOrderCreatedAt());
     }
 
-    private CourierPanelViewModel.CourierOrderViewModel toViewModel(
+    private CourierOrderGroupKey toOrderGroupKey(CourierOrderGroupActionForm form) {
+        if (form.getClusterKey() == null || form.getClusterKey().isBlank()
+                || form.getPickupFrom() == null
+                || form.getPickupTo() == null
+        ) {
+            throw new IllegalStateException("Некорректный ключ группы заказов");
+        }
+        return new CourierOrderGroupKey(form.getClusterKey().trim(), form.getPickupFrom(), form.getPickupTo());
+    }
+
+    private CourierPanelViewModel.CourierOrderGroupViewModel toGroupViewModel(
+            CourierOrderGroup group,
+            ZoneId courierZoneId,
+            boolean withTakeAction
+    ) {
+        int ordersCount = group.ordersCount();
+        String takeActionLabel = withTakeAction ? buildTakeActionLabel(ordersCount) : "";
+
+        return new CourierPanelViewModel.CourierOrderGroupViewModel(
+                group.clusterKey(),
+                convertToCourierTimezone(group.pickupFrom(), courierZoneId),
+                convertToCourierTimezone(group.pickupTo(), courierZoneId),
+                ordersCount,
+                group.separateOrdersCount(),
+                group.mixedOrdersCount(),
+                takeActionLabel,
+                group.orders().stream()
+                        .map(order -> toOrderViewModel(order, courierZoneId))
+                        .toList()
+        );
+    }
+
+    private String buildTakeActionLabel(int ordersCount) {
+        if (ordersCount <= 1) {
+            return "Взять заказ";
+        }
+        return "Взять все %s заказов".formatted(ordersCount);
+    }
+
+    private CourierPanelViewModel.CourierOrderViewModel toOrderViewModel(
             CourierOrderInfo order,
             ZoneId courierZoneId
     ) {
