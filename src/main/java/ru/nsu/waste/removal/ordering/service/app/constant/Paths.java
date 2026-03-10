@@ -24,6 +24,8 @@ public final class Paths {
 
     public static final String COURIER_TAKE_ORDER = COURIER_WITH_ID + "/orders/take";
 
+    public static final String COURIER_TAKE_ORDER_GROUP = COURIER_WITH_ID + "/order-groups/take";
+
     public static final String COURIER_COMPLETE_ORDER = COURIER_WITH_ID + "/orders/complete";
 
     public static final String QUIZ = "/quiz";

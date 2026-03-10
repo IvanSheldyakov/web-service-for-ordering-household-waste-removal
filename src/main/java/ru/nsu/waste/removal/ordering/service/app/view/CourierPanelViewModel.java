@@ -8,9 +8,21 @@ public record CourierPanelViewModel(
         String fullName,
         String postalCode,
         long totalPoints,
-        List<CourierOrderViewModel> availableOrders,
-        List<CourierOrderViewModel> assignedOrders
+        List<CourierOrderGroupViewModel> availableOrderGroups,
+        List<CourierOrderGroupViewModel> assignedOrderGroups
 ) {
+
+    public record CourierOrderGroupViewModel(
+            String clusterKey,
+            OffsetDateTime pickupFrom,
+            OffsetDateTime pickupTo,
+            int ordersCount,
+            int separateOrdersCount,
+            int mixedOrdersCount,
+            String takeActionLabel,
+            List<CourierOrderViewModel> orders
+    ) {
+    }
 
     public record CourierOrderViewModel(
             long orderId,

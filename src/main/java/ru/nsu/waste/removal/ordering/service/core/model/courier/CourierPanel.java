@@ -7,7 +7,7 @@ public record CourierPanel(
         String fullName,
         String postalCode,
         long totalPoints,
-        List<CourierOrderInfo> availableOrders,
-        List<CourierOrderInfo> assignedOrders
+        List<CourierOrderGroup> availableOrderGroups,
+        List<CourierOrderGroup> assignedOrderGroups
 ) {
 }

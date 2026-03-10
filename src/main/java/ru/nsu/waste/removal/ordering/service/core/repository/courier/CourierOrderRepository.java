@@ -153,6 +153,18 @@ public class CourierOrderRepository {
                      oi.green_chosen
             """;
 
+    private static final String TAKE_ORDER_GROUP_QUERY = """
+            update order_info
+            set courier_id = :courierId,
+                assigned_at = :assignedAt,
+                status = 'ASSIGNED'
+            where status = 'NEW'
+              and courier_id is null
+              and postal_code = :postalCode
+              and pickup_from = :pickupFrom
+              and pickup_to = :pickupTo
+            """;
+
     private static final String MARK_DONE_QUERY = """
             update order_info
             set status = 'DONE',
@@ -225,6 +237,24 @@ public class CourierOrderRepository {
                         .addValue(ParameterNames.ORDER_CREATED_AT, orderCreatedAt),
                 (rs, rowNum) -> mapCourierOrderInfo(rs)
         ).stream().findFirst();
+    }
+
+    public int takeOrderGroup(
+            long courierId,
+            String clusterKey,
+            OffsetDateTime pickupFrom,
+            OffsetDateTime pickupTo,
+            OffsetDateTime assignedAt
+    ) {
+        return namedParameterJdbcTemplate.update(
+                TAKE_ORDER_GROUP_QUERY,
+                new MapSqlParameterSource()
+                        .addValue(ParameterNames.COURIER_ID, courierId)
+                        .addValue(ParameterNames.POSTAL_CODE, clusterKey)
+                        .addValue(ParameterNames.PICKUP_FROM, pickupFrom)
+                        .addValue(ParameterNames.PICKUP_TO, pickupTo)
+                        .addValue(ParameterNames.ASSIGNED_AT, assignedAt)
+        );
     }
 
     public boolean markDone(

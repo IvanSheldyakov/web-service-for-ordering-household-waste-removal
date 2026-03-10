@@ -14,6 +14,7 @@ import ru.nsu.waste.removal.ordering.service.app.constant.AttributeNames;
 import ru.nsu.waste.removal.ordering.service.app.constant.Paths;
 import ru.nsu.waste.removal.ordering.service.app.constant.TemplateNames;
 import ru.nsu.waste.removal.ordering.service.app.form.CourierOrderActionForm;
+import ru.nsu.waste.removal.ordering.service.app.form.CourierOrderGroupActionForm;
 import ru.nsu.waste.removal.ordering.service.core.facade.CourierFacade;
 
 @Controller
@@ -45,6 +46,34 @@ public class CourierController {
         try {
             courierFacade.takeOrder(courierId, form);
             redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, "Заказ успешно взят в работу");
+        } catch (IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, exception.getMessage());
+        }
+
+        return redirectToPanel(courierId);
+    }
+
+    @PostMapping(Paths.COURIER_TAKE_ORDER_GROUP)
+    public String takeOrderGroup(
+            @PathVariable(Paths.COURIER_ID) long courierId,
+            @Valid @ModelAttribute CourierOrderGroupActionForm form,
+            BindingResult bindingResult,
+            RedirectAttributes redirectAttributes
+    ) {
+        if (bindingResult.hasErrors()) {
+            redirectAttributes.addFlashAttribute(
+                    AttributeNames.ERROR_MESSAGE,
+                    "Некорректные данные группы заказов"
+            );
+            return redirectToPanel(courierId);
+        }
+
+        try {
+            courierFacade.takeOrderGroup(courierId, form);
+            String successMessage = form.getExpectedOrderCount() != null && form.getExpectedOrderCount() > 1
+                    ? "В работу взято %s заказов".formatted(form.getExpectedOrderCount())
+                    : "Заказ успешно взят в работу";
+            redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, successMessage);
         } catch (IllegalStateException exception) {
             redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, exception.getMessage());
         }

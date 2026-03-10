@@ -26,87 +26,114 @@
     </section>
 
     <section class="card">
-        <h2>Доступные заказы</h2>
-        <p th:if="${#lists.isEmpty(panel.availableOrders)}">Нет доступных заказов в вашем районе</p>
+        <h2>Доступные группы заказов</h2>
+        <p th:if="${#lists.isEmpty(panel.availableOrderGroups)}">Нет доступных заказов в вашем районе</p>
 
-        <div class="order-list" th:unless="${#lists.isEmpty(panel.availableOrders)}">
-            <article class="order-card" th:each="order : ${panel.availableOrders}">
-                <h3>Заказ #<span th:text="${order.orderId}">1</span></h3>
-                <p><strong>Тип вывоза:</strong> <span
-                        th:text="${order.type == 'SEPARATE' ? 'Раздельный' : 'Смешанный'}">Смешанный</span></p>
-                <p>
-                    <strong>Время обслуживания:</strong>
-                    <span th:text="${#temporals.format(order.pickupFrom, 'yyyy-MM-dd HH:mm')}">2026-03-01 10:00</span>
-                    -
-                    <span th:text="${#temporals.format(order.pickupTo, 'yyyy-MM-dd HH:mm')}">2026-03-01 12:00</span>
-                </p>
-                <p>
-                    <strong>Адрес:</strong>
-                    <span th:text="${order.city}">Новосибирск</span>,
-                    <span th:text="${order.detailedAddress}">Ленина, 1</span>,
-                    <span th:text="${order.postalCode}">630000</span>
-                </p>
-                <p><strong>Статус:</strong> <span th:text="${order.status}">Новый</span></p>
+        <div class="group-list" th:unless="${#lists.isEmpty(panel.availableOrderGroups)}">
+            <article class="group-card" th:each="group : ${panel.availableOrderGroups}">
+                <div class="group-head">
+                    <h3>
+                        Интервал:
+                        <span th:text="${#temporals.format(group.pickupFrom, 'yyyy-MM-dd HH:mm')}">2026-03-01 10:00</span>
+                        -
+                        <span th:text="${#temporals.format(group.pickupTo, 'yyyy-MM-dd HH:mm')}">2026-03-01 12:00</span>
+                    </h3>
+                    <p><strong>Район:</strong> <span th:text="${group.clusterKey}">630000</span></p>
+                    <p>
+                        <strong>Заказов:</strong> <span th:text="${group.ordersCount}">2</span>,
+                        раздельных: <span th:text="${group.separateOrdersCount}">1</span>,
+                        смешанных: <span th:text="${group.mixedOrdersCount}">1</span>
+                    </p>
+                    <form class="courier-action-form"
+                          th:action="@{/courier/{courierId}/order-groups/take(courierId=${panel.courierId})}"
+                          method="post">
+                        <input type="hidden" name="clusterKey" th:value="${group.clusterKey}">
+                        <input type="hidden" name="pickupFrom" th:value="${group.pickupFrom}">
+                        <input type="hidden" name="pickupTo" th:value="${group.pickupTo}">
+                        <input type="hidden" name="expectedOrderCount" th:value="${group.ordersCount}">
+                        <button class="primary-button" type="submit" th:text="${group.takeActionLabel}">Взять заказ</button>
+                    </form>
+                </div>
 
-                <p th:if="${order.type == 'SEPARATE' and #lists.isEmpty(order.fractions)}">
-                    <strong>Фракции:</strong> Не указаны
-                </p>
-                <p th:if="${order.type == 'SEPARATE' and !#lists.isEmpty(order.fractions)}">
-                    <strong>Фракции:</strong> <span th:text="${#strings.listJoin(order.fractions, ', ')}">Бумага</span>
-                </p>
+                <div class="order-list">
+                    <article class="order-card" th:each="order : ${group.orders}">
+                        <h4>Заказ #<span th:text="${order.orderId}">1</span></h4>
+                        <p><strong>Тип вывоза:</strong> <span
+                                th:text="${order.type == 'SEPARATE' ? 'Раздельный' : 'Смешанный'}">Смешанный</span></p>
+                        <p>
+                            <strong>Адрес:</strong>
+                            <span th:text="${order.city}">Новосибирск</span>,
+                            <span th:text="${order.detailedAddress}">Ленина, 1</span>,
+                            <span th:text="${order.postalCode}">630000</span>
+                        </p>
+                        <p><strong>Статус:</strong> <span th:text="${order.status}">Новый</span></p>
 
-                <span class="slot-badge-green" th:if="${order.greenChosen}">Зелёный слот</span>
+                        <p th:if="${order.type == 'SEPARATE' and #lists.isEmpty(order.fractions)}">
+                            <strong>Фракции:</strong> Не указаны
+                        </p>
+                        <p th:if="${order.type == 'SEPARATE' and !#lists.isEmpty(order.fractions)}">
+                            <strong>Фракции:</strong> <span th:text="${#strings.listJoin(order.fractions, ', ')}">Бумага</span>
+                        </p>
 
-                <form class="courier-action-form"
-                      th:action="@{/courier/{courierId}/orders/take(courierId=${panel.courierId})}"
-                      method="post">
-                    <input type="hidden" name="orderId" th:value="${order.orderId}">
-                    <input type="hidden" name="orderCreatedAt" th:value="${order.orderCreatedAt}">
-                    <button class="primary-button" type="submit">Взять заказ</button>
-                </form>
+                        <span class="slot-badge-green" th:if="${order.greenChosen}">Зелёный слот</span>
+                    </article>
+                </div>
             </article>
         </div>
     </section>
 
     <section class="card">
-        <h2>Назначенные заказы</h2>
-        <p th:if="${#lists.isEmpty(panel.assignedOrders)}">У вас нет назначенных заказов</p>
+        <h2>Назначенные группы заказов</h2>
+        <p th:if="${#lists.isEmpty(panel.assignedOrderGroups)}">У вас нет назначенных заказов</p>
 
-        <div class="order-list" th:unless="${#lists.isEmpty(panel.assignedOrders)}">
-            <article class="order-card" th:each="order : ${panel.assignedOrders}">
-                <h3>Заказ #<span th:text="${order.orderId}">1</span></h3>
-                <p><strong>Тип вывоза:</strong> <span
-                        th:text="${order.type == 'SEPARATE' ? 'Раздельный' : 'Смешанный'}">Смешанный</span></p>
-                <p>
-                    <strong>Время обслуживания:</strong>
-                    <span th:text="${#temporals.format(order.pickupFrom, 'yyyy-MM-dd HH:mm')}">2026-03-01 10:00</span>
-                    -
-                    <span th:text="${#temporals.format(order.pickupTo, 'yyyy-MM-dd HH:mm')}">2026-03-01 12:00</span>
-                </p>
-                <p>
-                    <strong>Адрес:</strong>
-                    <span th:text="${order.city}">Новосибирск</span>,
-                    <span th:text="${order.detailedAddress}">Ленина, 1</span>,
-                    <span th:text="${order.postalCode}">630000</span>
-                </p>
-                <p><strong>Статус:</strong> <span th:text="${order.status}">Назначен</span></p>
+        <div class="group-list" th:unless="${#lists.isEmpty(panel.assignedOrderGroups)}">
+            <article class="group-card" th:each="group : ${panel.assignedOrderGroups}">
+                <div class="group-head">
+                    <h3>
+                        Интервал:
+                        <span th:text="${#temporals.format(group.pickupFrom, 'yyyy-MM-dd HH:mm')}">2026-03-01 10:00</span>
+                        -
+                        <span th:text="${#temporals.format(group.pickupTo, 'yyyy-MM-dd HH:mm')}">2026-03-01 12:00</span>
+                    </h3>
+                    <p><strong>Район:</strong> <span th:text="${group.clusterKey}">630000</span></p>
+                    <p>
+                        <strong>Заказов:</strong> <span th:text="${group.ordersCount}">2</span>,
+                        раздельных: <span th:text="${group.separateOrdersCount}">1</span>,
+                        смешанных: <span th:text="${group.mixedOrdersCount}">1</span>
+                    </p>
+                </div>
 
-                <p th:if="${order.type == 'SEPARATE' and #lists.isEmpty(order.fractions)}">
-                    <strong>Фракции:</strong> Не указаны
-                </p>
-                <p th:if="${order.type == 'SEPARATE' and !#lists.isEmpty(order.fractions)}">
-                    <strong>Фракции:</strong> <span th:text="${#strings.listJoin(order.fractions, ', ')}">Бумага</span>
-                </p>
+                <div class="order-list">
+                    <article class="order-card" th:each="order : ${group.orders}">
+                        <h4>Заказ #<span th:text="${order.orderId}">1</span></h4>
+                        <p><strong>Тип вывоза:</strong> <span
+                                th:text="${order.type == 'SEPARATE' ? 'Раздельный' : 'Смешанный'}">Смешанный</span></p>
+                        <p>
+                            <strong>Адрес:</strong>
+                            <span th:text="${order.city}">Новосибирск</span>,
+                            <span th:text="${order.detailedAddress}">Ленина, 1</span>,
+                            <span th:text="${order.postalCode}">630000</span>
+                        </p>
+                        <p><strong>Статус:</strong> <span th:text="${order.status}">Назначен</span></p>
 
-                <span class="slot-badge-green" th:if="${order.greenChosen}">Зелёный слот</span>
+                        <p th:if="${order.type == 'SEPARATE' and #lists.isEmpty(order.fractions)}">
+                            <strong>Фракции:</strong> Не указаны
+                        </p>
+                        <p th:if="${order.type == 'SEPARATE' and !#lists.isEmpty(order.fractions)}">
+                            <strong>Фракции:</strong> <span th:text="${#strings.listJoin(order.fractions, ', ')}">Бумага</span>
+                        </p>
 
-                <form class="courier-action-form"
-                      th:action="@{/courier/{courierId}/orders/complete(courierId=${panel.courierId})}"
-                      method="post">
-                    <input type="hidden" name="orderId" th:value="${order.orderId}">
-                    <input type="hidden" name="orderCreatedAt" th:value="${order.orderCreatedAt}">
-                    <button class="primary-button" type="submit">Отметить выполненным</button>
-                </form>
+                        <span class="slot-badge-green" th:if="${order.greenChosen}">Зелёный слот</span>
+
+                        <form class="courier-action-form"
+                              th:action="@{/courier/{courierId}/orders/complete(courierId=${panel.courierId})}"
+                              method="post">
+                            <input type="hidden" name="orderId" th:value="${order.orderId}">
+                            <input type="hidden" name="orderCreatedAt" th:value="${order.orderCreatedAt}">
+                            <button class="primary-button" type="submit">Отметить выполненным</button>
+                        </form>
+                    </article>
+                </div>
             </article>
         </div>
     </section>

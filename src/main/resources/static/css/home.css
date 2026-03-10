@@ -52,10 +52,31 @@ h3 {
     gap: 12px;
 }
 
+.group-list {
+    display: grid;
+    gap: 14px;
+}
+
+.group-card {
+    border: 1px solid #dce7d8;
+    border-radius: 10px;
+    padding: 12px;
+    background: #f9fcf8;
+}
+
+.group-head {
+    margin-bottom: 10px;
+}
+
 .order-card {
     border: 1px solid #e0e8dd;
     border-radius: 8px;
     padding: 12px;
+    background: #ffffff;
+}
+
+.order-card h4 {
+    margin: 0 0 8px;
 }
 
 .progress {

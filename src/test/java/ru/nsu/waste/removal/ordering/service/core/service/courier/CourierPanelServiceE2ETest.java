@@ -1,7 +1,5 @@
 package ru.nsu.waste.removal.ordering.service.core.service.courier;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -17,6 +15,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.nsu.waste.removal.ordering.service.app.form.CourierRegistrationForm;
+import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierOrderGroupKey;
 import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierPanel;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderKey;
@@ -26,10 +25,11 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,6 +40,8 @@ class CourierPanelServiceE2ETest {
 
     private static final String TZ_OMSK = "Asia/Omsk";
     private static final OffsetDateTime FIXED_NOW = OffsetDateTime.parse("2026-03-20T10:15:30Z");
+    private static final String PRIMARY_CLUSTER = "630000";
+    private static final String SECONDARY_CLUSTER = "630001";
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16.3-alpine")
@@ -69,9 +71,6 @@ class CourierPanelServiceE2ETest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @BeforeEach
     void resetRuntimeData() {
         jdbcTemplate.execute("""
@@ -91,195 +90,242 @@ class CourierPanelServiceE2ETest {
     }
 
     @Test
-    void getPanel_returnsOnlyOrdersRelevantForCourier() {
-        long courierId = registerCourier("79030000001", "630000");
-        long anotherCourierId = registerCourier("79030000002", "630001");
+    void getPanel_groupsOrdersByClusterAndSlot() {
+        long courierId = registerCourier("79030000101", PRIMARY_CLUSTER);
 
-        long userInCourierArea = createUser("79100000001", "630000", "Новосибирск", "Ленина, 1");
-        long userOtherArea = createUser("79100000002", "630001", "Томск", "Мира, 2");
+        long userA1 = createUser("79100000101", PRIMARY_CLUSTER, "Новосибирск", "Ленина, 1");
+        long userA2 = createUser("79100000102", PRIMARY_CLUSTER, "Новосибирск", "Крылова, 2");
+        long userA3 = createUser("79100000103", PRIMARY_CLUSTER, "Новосибирск", "Гоголя, 3");
+        long userB = createUser("79100000104", SECONDARY_CLUSTER, "Томск", "Мира, 4");
 
-        OrderKey availableOrder = addOrder(
-                userInCourierArea,
-                "MIXED",
-                "NEW",
-                "630000",
-                null,
-                OffsetDateTime.parse("2026-03-10T08:00:00Z")
-        );
-        addOrder(
-                userOtherArea,
-                "MIXED",
-                "NEW",
-                "630001",
-                null,
-                OffsetDateTime.parse("2026-03-10T09:00:00Z")
-        );
-        OrderKey assignedToCourier = addOrder(
-                userInCourierArea,
+        OffsetDateTime slot1From = OffsetDateTime.parse("2026-03-21T10:00:00Z");
+        OffsetDateTime slot1To = slot1From.plusHours(2);
+        OffsetDateTime slot2From = OffsetDateTime.parse("2026-03-21T14:00:00Z");
+        OffsetDateTime slot2To = slot2From.plusHours(2);
+
+        OrderKey firstInGroup = addOrder(
+                userA1,
                 "SEPARATE",
-                "ASSIGNED",
-                "630000",
-                courierId,
-                OffsetDateTime.parse("2026-03-10T10:00:00Z")
+                "NEW",
+                PRIMARY_CLUSTER,
+                null,
+                OffsetDateTime.parse("2026-03-20T08:00:00Z"),
+                slot1From,
+                slot1To
         );
-        addOrderFraction(assignedToCourier, "PAPER");
-        addOrder(
-                userInCourierArea,
+        OrderKey secondInGroup = addOrder(
+                userA2,
                 "MIXED",
-                "ASSIGNED",
-                "630000",
-                anotherCourierId,
-                OffsetDateTime.parse("2026-03-10T11:00:00Z")
+                "NEW",
+                PRIMARY_CLUSTER,
+                null,
+                OffsetDateTime.parse("2026-03-20T09:00:00Z"),
+                slot1From,
+                slot1To
+        );
+        addOrder(
+                userA3,
+                "MIXED",
+                "NEW",
+                PRIMARY_CLUSTER,
+                null,
+                OffsetDateTime.parse("2026-03-20T09:30:00Z"),
+                slot2From,
+                slot2To
+        );
+        addOrder(
+                userB,
+                "MIXED",
+                "NEW",
+                SECONDARY_CLUSTER,
+                null,
+                OffsetDateTime.parse("2026-03-20T10:00:00Z"),
+                slot1From,
+                slot1To
         );
 
         CourierPanel panel = courierPanelService.getPanel(courierId);
 
-        assertEquals(courierId, panel.courierId());
-        assertEquals(1, panel.availableOrders().size());
-        assertEquals(availableOrder.id(), panel.availableOrders().getFirst().orderId());
-        assertEquals(1, panel.assignedOrders().size());
-        assertEquals(assignedToCourier.id(), panel.assignedOrders().getFirst().orderId());
-        assertEquals("Новосибирск", panel.assignedOrders().getFirst().city());
-        assertFalse(panel.assignedOrders().getFirst().fractions().isEmpty());
+        assertEquals(2, panel.availableOrderGroups().size());
+        assertEquals(0, panel.assignedOrderGroups().size());
+
+        var firstGroup = panel.availableOrderGroups().get(0);
+        assertEquals(PRIMARY_CLUSTER, firstGroup.clusterKey());
+        assertEquals(slot1From.toInstant(), firstGroup.pickupFrom().toInstant());
+        assertEquals(slot1To.toInstant(), firstGroup.pickupTo().toInstant());
+        assertEquals(2, firstGroup.ordersCount());
+        assertEquals(1, firstGroup.separateOrdersCount());
+        assertEquals(1, firstGroup.mixedOrdersCount());
+        assertEquals(firstInGroup.id(), firstGroup.orders().get(0).orderId());
+        assertEquals(secondInGroup.id(), firstGroup.orders().get(1).orderId());
+
+        var secondGroup = panel.availableOrderGroups().get(1);
+        assertEquals(1, secondGroup.ordersCount());
+        assertEquals(slot2From.toInstant(), secondGroup.pickupFrom().toInstant());
     }
 
     @Test
-    void takeOrder_isAtomicAndProtectsFromParallelCapture() {
-        long firstCourierId = registerCourier("79030000011", "630000");
-        long secondCourierId = registerCourier("79030000012", "630000");
-        long userId = createUser("79100000011", "630000", "Новосибирск", "Красный проспект, 5");
+    void takeOrderGroup_assignsWholeGroupAtomically() {
+        long courierId = registerCourier("79030000111", PRIMARY_CLUSTER);
 
-        OrderKey targetOrder = addOrder(
-                userId,
-                "MIXED",
-                "NEW",
-                "630000",
-                null,
-                OffsetDateTime.parse("2026-03-11T08:00:00Z")
+        long user1 = createUser("79100000111", PRIMARY_CLUSTER, "Новосибирск", "Ленина, 10");
+        long user2 = createUser("79100000112", PRIMARY_CLUSTER, "Новосибирск", "Ленина, 11");
+        long user3 = createUser("79100000113", PRIMARY_CLUSTER, "Новосибирск", "Ленина, 12");
+
+        OffsetDateTime slotFrom = OffsetDateTime.parse("2026-03-21T12:00:00Z");
+        OffsetDateTime slotTo = slotFrom.plusHours(2);
+
+        OrderKey order1 = addOrder(user1, "MIXED", "NEW", PRIMARY_CLUSTER, null,
+                OffsetDateTime.parse("2026-03-20T08:00:00Z"), slotFrom, slotTo);
+        OrderKey order2 = addOrder(user2, "SEPARATE", "NEW", PRIMARY_CLUSTER, null,
+                OffsetDateTime.parse("2026-03-20T08:05:00Z"), slotFrom, slotTo);
+        OrderKey order3 = addOrder(user3, "MIXED", "NEW", PRIMARY_CLUSTER, null,
+                OffsetDateTime.parse("2026-03-20T08:10:00Z"), slotFrom, slotTo);
+
+        courierPanelService.takeOrderGroup(
+                courierId,
+                new CourierOrderGroupKey(PRIMARY_CLUSTER, slotFrom, slotTo),
+                3
         );
 
-        courierPanelService.takeOrder(firstCourierId, targetOrder);
+        assertAssignedToCourier(order1, courierId);
+        assertAssignedToCourier(order2, courierId);
+        assertAssignedToCourier(order3, courierId);
 
-        OrderState afterFirstTake = findOrderState(targetOrder);
-        assertEquals("ASSIGNED", afterFirstTake.status());
-        assertEquals(firstCourierId, afterFirstTake.courierId());
-        assertEquals(FIXED_NOW.toInstant(), afterFirstTake.assignedAt().toInstant());
+        CourierPanel panel = courierPanelService.getPanel(courierId);
+        assertEquals(0, panel.availableOrderGroups().size());
+        assertEquals(1, panel.assignedOrderGroups().size());
+        assertEquals(3, panel.assignedOrderGroups().getFirst().ordersCount());
+    }
+
+    @Test
+    void takeOrderGroup_rollsBackIfCompositionChanged() {
+        long firstCourierId = registerCourier("79030000121", PRIMARY_CLUSTER);
+        long secondCourierId = registerCourier("79030000122", PRIMARY_CLUSTER);
+
+        long user1 = createUser("79100000121", PRIMARY_CLUSTER, "Новосибирск", "Каменская, 10");
+        long user2 = createUser("79100000122", PRIMARY_CLUSTER, "Новосибирск", "Каменская, 11");
+        long user3 = createUser("79100000123", PRIMARY_CLUSTER, "Новосибирск", "Каменская, 12");
+
+        OffsetDateTime slotFrom = OffsetDateTime.parse("2026-03-21T16:00:00Z");
+        OffsetDateTime slotTo = slotFrom.plusHours(2);
+
+        OrderKey firstOrder = addOrder(user1, "MIXED", "NEW", PRIMARY_CLUSTER, null,
+                OffsetDateTime.parse("2026-03-20T08:00:00Z"), slotFrom, slotTo);
+        OrderKey secondOrder = addOrder(user2, "MIXED", "NEW", PRIMARY_CLUSTER, null,
+                OffsetDateTime.parse("2026-03-20T08:05:00Z"), slotFrom, slotTo);
+        OrderKey thirdOrder = addOrder(user3, "MIXED", "NEW", PRIMARY_CLUSTER, null,
+                OffsetDateTime.parse("2026-03-20T08:10:00Z"), slotFrom, slotTo);
+
+        courierPanelService.takeOrder(secondCourierId, firstOrder);
 
         IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> courierPanelService.takeOrder(secondCourierId, targetOrder)
+                () -> courierPanelService.takeOrderGroup(
+                        firstCourierId,
+                        new CourierOrderGroupKey(PRIMARY_CLUSTER, slotFrom, slotTo),
+                        3
+                )
         );
-        assertEquals("Заказ уже взят другим курьером или недоступен", exception.getMessage());
+        assertEquals("Состав группы изменился, обновите страницу", exception.getMessage());
+
+        OrderState firstState = findOrderState(firstOrder);
+        OrderState secondState = findOrderState(secondOrder);
+        OrderState thirdState = findOrderState(thirdOrder);
+
+        assertEquals("ASSIGNED", firstState.status());
+        assertEquals(secondCourierId, firstState.courierId());
+
+        assertEquals("NEW", secondState.status());
+        assertNull(secondState.courierId());
+
+        assertEquals("NEW", thirdState.status());
+        assertNull(thirdState.courierId());
     }
 
     @Test
-    void completeOrder_marksDone_addsCourierPoints_andCreatesOrderDoneEvent() throws Exception {
-        long courierId = registerCourier("79030000021", "630000");
-        long userId = createUser("79100000021", "630000", "Новосибирск", "Серебренниковская, 10");
+    void assignedOrders_areStillCompletedIndividually() {
+        long courierId = registerCourier("79030000131", PRIMARY_CLUSTER);
 
-        OrderKey assignedOrder = addOrder(
-                userId,
-                "SEPARATE",
-                "ASSIGNED",
-                "630000",
+        long user1 = createUser("79100000131", PRIMARY_CLUSTER, "Новосибирск", "Фрунзе, 1");
+        long user2 = createUser("79100000132", PRIMARY_CLUSTER, "Новосибирск", "Фрунзе, 2");
+        long user3 = createUser("79100000133", PRIMARY_CLUSTER, "Новосибирск", "Фрунзе, 3");
+
+        OffsetDateTime slotFrom = OffsetDateTime.parse("2026-03-22T10:00:00Z");
+        OffsetDateTime slotTo = slotFrom.plusHours(2);
+
+        OrderKey order1 = addOrder(user1, "MIXED", "NEW", PRIMARY_CLUSTER, null,
+                OffsetDateTime.parse("2026-03-20T07:00:00Z"), slotFrom, slotTo);
+        OrderKey order2 = addOrder(user2, "SEPARATE", "NEW", PRIMARY_CLUSTER, null,
+                OffsetDateTime.parse("2026-03-20T07:05:00Z"), slotFrom, slotTo);
+        OrderKey order3 = addOrder(user3, "MIXED", "NEW", PRIMARY_CLUSTER, null,
+                OffsetDateTime.parse("2026-03-20T07:10:00Z"), slotFrom, slotTo);
+
+        courierPanelService.takeOrderGroup(
                 courierId,
-                OffsetDateTime.parse("2026-03-12T08:00:00Z")
-        );
-        addOrderFraction(assignedOrder, "PAPER");
-        addOrderFraction(assignedOrder, "PLASTIC");
-
-        long doneOrdersBefore = orderInfoService.countDoneOrders(userId);
-        long pointsBefore = findCourierTotalPoints(courierId);
-
-        courierPanelService.completeOrder(courierId, assignedOrder);
-
-        OrderState doneState = findOrderState(assignedOrder);
-        assertEquals("DONE", doneState.status());
-        assertEquals(courierId, doneState.courierId());
-        assertNotNull(doneState.completedAt());
-        assertEquals(FIXED_NOW.toInstant(), doneState.completedAt().toInstant());
-
-        assertEquals(pointsBefore + 20L, findCourierTotalPoints(courierId));
-        assertEquals(doneOrdersBefore + 1L, orderInfoService.countDoneOrders(userId));
-
-        EventRow eventRow = jdbcTemplate.queryForObject(
-                """
-                        select points_difference,
-                               content::text as content_json
-                        from user_action_history
-                        where user_id = ?
-                          and event_type = ?
-                        order by id desc
-                        limit 1
-                        """,
-                (rs, rowNum) -> new EventRow(
-                        rs.getLong("points_difference"),
-                        rs.getString("content_json")
-                ),
-                userId,
-                UserActionEventType.ORDER_DONE.dbName()
+                new CourierOrderGroupKey(PRIMARY_CLUSTER, slotFrom, slotTo),
+                3
         );
 
-        if (eventRow == null) {
-            throw new IllegalStateException("ORDER_DONE event is missing");
-        }
+        long user2DoneBefore = orderInfoService.countDoneOrders(user2);
+        long courierPointsBefore = findCourierTotalPoints(courierId);
 
-        assertEquals(0L, eventRow.pointsDifference());
-        JsonNode content = objectMapper.readTree(eventRow.contentJson());
-        assertEquals(assignedOrder.id(), content.path("orderId").asLong());
-        assertEquals(courierId, content.path("courierId").asLong());
-        assertEquals("DONE", content.path("status").asText());
-        assertEquals(2, content.path("fractionIds").size());
+        courierPanelService.completeOrder(courierId, order2);
+
+        OrderState doneOrderState = findOrderState(order2);
+        assertEquals("DONE", doneOrderState.status());
+        assertEquals(courierId, doneOrderState.courierId());
+        assertNotNull(doneOrderState.completedAt());
+        assertEquals(FIXED_NOW.toInstant(), doneOrderState.completedAt().toInstant());
+
+        assertEquals("ASSIGNED", findOrderState(order1).status());
+        assertEquals("ASSIGNED", findOrderState(order3).status());
+
+        assertEquals(courierPointsBefore + 20L, findCourierTotalPoints(courierId));
+        assertEquals(user2DoneBefore + 1L, orderInfoService.countDoneOrders(user2));
+
+        assertEquals(1L, countEvents(user2, UserActionEventType.ORDER_DONE));
+        assertEquals(0L, countEvents(user1, UserActionEventType.ORDER_DONE));
+        assertEquals(0L, countEvents(user3, UserActionEventType.ORDER_DONE));
     }
 
     @Test
-    void negativeScenarios_throwExpectedErrors() {
-        long firstCourierId = registerCourier("79030000031", "630000");
-        long secondCourierId = registerCourier("79030000032", "630000");
-        long userId = createUser("79100000031", "630000", "Новосибирск", "Гоголя, 15");
+    void singleOrderFlowsStillWork() {
+        long firstCourierId = registerCourier("79030000141", PRIMARY_CLUSTER);
+        long secondCourierId = registerCourier("79030000142", PRIMARY_CLUSTER);
+        long userId = createUser("79100000141", PRIMARY_CLUSTER, "Новосибирск", "Державина, 10");
 
-        OrderKey assignedToFirstCourier = addOrder(
-                userId,
-                "MIXED",
-                "ASSIGNED",
-                "630000",
-                firstCourierId,
-                OffsetDateTime.parse("2026-03-13T08:00:00Z")
-        );
-        OrderKey newOrder = addOrder(
+        OffsetDateTime slotFrom = OffsetDateTime.parse("2026-03-22T14:00:00Z");
+        OffsetDateTime slotTo = slotFrom.plusHours(2);
+        OrderKey order = addOrder(
                 userId,
                 "MIXED",
                 "NEW",
-                "630000",
+                PRIMARY_CLUSTER,
                 null,
-                OffsetDateTime.parse("2026-03-13T09:00:00Z")
-        );
-        OrderKey doneOrder = addOrder(
-                userId,
-                "MIXED",
-                "DONE",
-                "630000",
-                firstCourierId,
-                OffsetDateTime.parse("2026-03-13T10:00:00Z")
+                OffsetDateTime.parse("2026-03-20T11:00:00Z"),
+                slotFrom,
+                slotTo
         );
 
-        IllegalStateException notOwnCompletion = assertThrows(
+        courierPanelService.takeOrder(firstCourierId, order);
+        IllegalStateException exception = assertThrows(
                 IllegalStateException.class,
-                () -> courierPanelService.completeOrder(secondCourierId, assignedToFirstCourier)
+                () -> courierPanelService.takeOrder(secondCourierId, order)
         );
-        assertEquals("Заказ не найден или не назначен этому курьеру", notOwnCompletion.getMessage());
+        assertEquals("Заказ уже взят другим курьером или недоступен", exception.getMessage());
 
-        IllegalStateException completeNewOrder = assertThrows(
-                IllegalStateException.class,
-                () -> courierPanelService.completeOrder(firstCourierId, newOrder)
-        );
-        assertEquals("Заказ не найден или не назначен этому курьеру", completeNewOrder.getMessage());
+        courierPanelService.completeOrder(firstCourierId, order);
+        assertEquals("DONE", findOrderState(order).status());
+        assertTrue(findCourierTotalPoints(firstCourierId) >= 20L);
+    }
 
-        IllegalStateException takeDoneOrder = assertThrows(
-                IllegalStateException.class,
-                () -> courierPanelService.takeOrder(firstCourierId, doneOrder)
-        );
-        assertEquals("Заказ уже взят другим курьером или недоступен", takeDoneOrder.getMessage());
+    private void assertAssignedToCourier(OrderKey orderKey, long courierId) {
+        OrderState state = findOrderState(orderKey);
+        assertEquals("ASSIGNED", state.status());
+        assertEquals(courierId, state.courierId());
+        assertNotNull(state.assignedAt());
+        assertEquals(FIXED_NOW.toInstant(), state.assignedAt().toInstant());
     }
 
     private long registerCourier(String phone, String postalCode) {
@@ -348,7 +394,9 @@ class CourierPanelServiceE2ETest {
             String status,
             String postalCode,
             Long courierId,
-            OffsetDateTime createdAt
+            OffsetDateTime createdAt,
+            OffsetDateTime pickupFrom,
+            OffsetDateTime pickupTo
     ) {
         OffsetDateTime assignedAt = ("ASSIGNED".equals(status) || "DONE".equals(status))
                 ? createdAt.plusMinutes(15)
@@ -356,8 +404,6 @@ class CourierPanelServiceE2ETest {
         OffsetDateTime completedAt = "DONE".equals(status)
                 ? createdAt.plusHours(1)
                 : null;
-        OffsetDateTime pickupFrom = createdAt.plusDays(1);
-        OffsetDateTime pickupTo = pickupFrom.plusHours(2);
 
         OrderKey orderKey = jdbcTemplate.queryForObject(
                 """
@@ -400,6 +446,10 @@ class CourierPanelServiceE2ETest {
             throw new IllegalStateException("Failed to create test order");
         }
 
+        if ("SEPARATE".equals(type)) {
+            addOrderFraction(orderKey, "PAPER");
+        }
+
         return orderKey;
     }
 
@@ -434,7 +484,7 @@ class CourierPanelServiceE2ETest {
                         """,
                 (rs, rowNum) -> new OrderState(
                         rs.getString("status"),
-                        rs.getLong("courier_id"),
+                        rs.getObject("courier_id", Long.class),
                         rs.getObject("assigned_at", OffsetDateTime.class),
                         rs.getObject("completed_at", OffsetDateTime.class)
                 ),
@@ -452,17 +502,26 @@ class CourierPanelServiceE2ETest {
         return points == null ? 0L : points;
     }
 
-    private record OrderState(
-            String status,
-            long courierId,
-            OffsetDateTime assignedAt,
-            OffsetDateTime completedAt
-    ) {
+    private long countEvents(long userId, UserActionEventType eventType) {
+        Long count = jdbcTemplate.queryForObject(
+                """
+                        select count(*)
+                        from user_action_history
+                        where user_id = ?
+                          and event_type = ?
+                        """,
+                Long.class,
+                userId,
+                eventType.dbName()
+        );
+        return count == null ? 0L : count;
     }
 
-    private record EventRow(
-            long pointsDifference,
-            String contentJson
+    private record OrderState(
+            String status,
+            Long courierId,
+            OffsetDateTime assignedAt,
+            OffsetDateTime completedAt
     ) {
     }
 
