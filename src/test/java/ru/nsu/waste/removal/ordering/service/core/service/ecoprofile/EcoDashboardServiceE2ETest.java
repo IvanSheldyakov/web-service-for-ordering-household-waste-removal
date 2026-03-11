@@ -221,6 +221,24 @@ class EcoDashboardServiceE2ETest {
         assertEquals(0L, asLong(event.get("points_difference")));
     }
 
+    @Test
+    void getDashboard_afterOrderPaidWithPoints_keepsTotalAndShowsReducedCurrent() {
+        long userId = createUser("79000000003", "100003", "EXPLORER", 500L, 200L);
+        jdbcTemplate.update(
+                """
+                        insert into user_action_history(user_id, event_type, content, points_difference, created_at)
+                        values (?, 'ORDER_PAID_WITH_POINTS', cast('{"orderId":1,"spentPoints":100}' as jsonb), -100, ?)
+                        """,
+                userId,
+                OffsetDateTime.parse("2026-03-19T10:00:00+00:00")
+        );
+
+        EcoDashboard dashboard = ecoDashboardService.getDashboard(userId, EcoDashboardPeriod.ALL);
+
+        assertEquals(200L, dashboard.currentPoints());
+        assertEquals(500L, dashboard.totalPoints());
+    }
+
     private long createUser(
             String phone,
             String postalCode,

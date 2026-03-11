@@ -202,6 +202,8 @@ public class UserFacade {
                 localizeOrderStatus(order.status()),
                 convertToUserTimezone(order.pickupFrom(), userZoneId),
                 convertToUserTimezone(order.pickupTo(), userZoneId),
+                order.costPoints(),
+                localizePaymentStatus(order.paymentStatus()),
                 order.fractions()
         );
     }
@@ -233,6 +235,17 @@ public class UserFacade {
             case "DONE" -> "Выполнен";
             case "CANCELLED" -> "Отменен";
             default -> "Неизвестно";
+        };
+    }
+
+    private String localizePaymentStatus(String paymentStatus) {
+        if (paymentStatus == null || paymentStatus.isBlank()) {
+            return "Без внутренней оплаты";
+        }
+        return switch (paymentStatus.trim().toUpperCase(Locale.ROOT)) {
+            case "PAID_WITH_POINTS" -> "Оплачен баллами";
+            case "UNPAID" -> "Без внутренней оплаты";
+            default -> "Без внутренней оплаты";
         };
     }
 

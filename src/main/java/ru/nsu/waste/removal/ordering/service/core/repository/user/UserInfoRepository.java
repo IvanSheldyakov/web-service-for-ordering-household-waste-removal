@@ -24,12 +24,16 @@ public class UserInfoRepository {
             insert into user_info(
                                   type_id,
                                   address_id,
-                                  person_id
+                                  person_id,
+                                  total_points,
+                                  current_points
                                   )
             values (
                     :typeId,
                     :addressId,
-                    :personId
+                    :personId,
+                    :totalPoints,
+                    :currentPoints
                     )
             
             returning id
@@ -114,11 +118,13 @@ public class UserInfoRepository {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public long addUserInfo(int typeId, long addressId, long personId) {
+    public long addUserInfo(int typeId, long addressId, long personId, long initialPoints) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue(ParameterNames.TYPE_ID, typeId)
                 .addValue(ParameterNames.ADDRESS_ID, addressId)
-                .addValue(ParameterNames.PERSON_ID, personId);
+                .addValue(ParameterNames.PERSON_ID, personId)
+                .addValue(ParameterNames.TOTAL_POINTS, initialPoints)
+                .addValue(ParameterNames.CURRENT_POINTS, initialPoints);
 
         Long id = namedParameterJdbcTemplate.queryForObject(ADD_USER_INFO_QUERY, params, Long.class);
 

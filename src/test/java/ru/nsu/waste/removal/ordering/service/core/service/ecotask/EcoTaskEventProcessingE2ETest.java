@@ -38,6 +38,7 @@ class EcoTaskEventProcessingE2ETest {
 
     private static final String TZ_ALMATY = "Asia/Almaty";
     private static final String ACHIEVER_TASK_CODE = "TASK_ACH_SEPARATE_5_WEEK";
+    private static final long INITIAL_USER_POINTS = 1000L;
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16.3-alpine")
@@ -96,15 +97,15 @@ class EcoTaskEventProcessingE2ETest {
         assertEquals("DONE", findEcoTaskStatus(userId, ACHIEVER_TASK_CODE));
         assertEquals(1, countEventsByType(userId, UserActionEventType.ECO_TASK_COMPLETED));
         assertEquals(100L, findLatestEcoTaskCompletedPointsDifference(userId));
-        assertEquals(0L, findUserTotalPoints(userId));
-        assertEquals(0L, findUserCurrentPoints(userId));
+        assertEquals(INITIAL_USER_POINTS, findUserTotalPoints(userId));
+        assertEquals(INITIAL_USER_POINTS, findUserCurrentPoints(userId));
 
         int secondProcessed = userActionEventProcessorService.processPendingEvents();
 
         assertTrue(secondProcessed >= 1);
         assertEquals(1, countEventsByType(userId, UserActionEventType.ECO_TASK_COMPLETED));
-        assertEquals(100L, findUserTotalPoints(userId));
-        assertEquals(100L, findUserCurrentPoints(userId));
+        assertEquals(INITIAL_USER_POINTS + 100L, findUserTotalPoints(userId));
+        assertEquals(INITIAL_USER_POINTS + 100L, findUserCurrentPoints(userId));
     }
 
     private void addDoneSeparateOrders(long userId, int count) {

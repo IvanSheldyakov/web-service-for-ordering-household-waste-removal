@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class RegistrationServiceTest {
 
     private static final String TZ_ALMATY = "Asia/Almaty";
+    private static final long INITIAL_USER_POINTS = 1000L;
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16.3-alpine")
@@ -89,8 +90,8 @@ class RegistrationServiceTest {
 
         assertNotNull(result);
         assertEquals("\u0414\u043e\u0441\u0442\u0438\u0433\u0430\u0442\u0435\u043b\u044c", result.userTypeName());
-        assertEquals(0, result.balances().totalPoints());
-        assertEquals(0, result.balances().currentPoints());
+        assertEquals(INITIAL_USER_POINTS, result.balances().totalPoints());
+        assertEquals(INITIAL_USER_POINTS, result.balances().currentPoints());
 
         assertEquals(personBefore + 1, count("person_info"));
         assertEquals(addressBefore + 1, count("address"));

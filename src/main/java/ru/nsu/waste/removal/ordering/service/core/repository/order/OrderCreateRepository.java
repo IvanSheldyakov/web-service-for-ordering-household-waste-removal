@@ -26,7 +26,9 @@ public class OrderCreateRepository {
                                    pickup_to,
                                    green_chosen,
                                    postal_code,
-                                   cost_points
+                                   cost_points,
+                                   payment_status,
+                                   paid_at
                                    )
             values (
                     :userId,
@@ -37,7 +39,13 @@ public class OrderCreateRepository {
                     :pickupTo,
                     :greenChosen,
                     :postalCode,
-                    :costPoints
+                    :costPoints,
+                    :paymentStatus,
+                    case
+                        when cast(:paymentStatus as varchar) = 'PAID_WITH_POINTS'
+                            then now()
+                        else null
+                    end
                     )
             returning id, created_at
             """;
@@ -67,7 +75,8 @@ public class OrderCreateRepository {
                         .addValue(ParameterNames.PICKUP_TO, params.pickupTo())
                         .addValue(ParameterNames.GREEN_CHOSEN, params.greenChosen())
                         .addValue(ParameterNames.POSTAL_CODE, params.clusterKey())
-                        .addValue(ParameterNames.COST_POINTS, params.costPoints()),
+                        .addValue(ParameterNames.COST_POINTS, params.costPoints())
+                        .addValue(ParameterNames.PAYMENT_STATUS, params.paymentStatus().dbName()),
                 (rs, rowNum) -> new OrderKey(
                         rs.getLong(ColumnNames.ID),
                         rs.getObject(ColumnNames.CREATED_AT, OffsetDateTime.class)

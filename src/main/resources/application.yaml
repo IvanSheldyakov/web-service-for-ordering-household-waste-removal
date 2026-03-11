@@ -18,3 +18,9 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+
+app:
+  order:
+    fixed-cost-points: 100
+  user:
+    initial-points: 1000

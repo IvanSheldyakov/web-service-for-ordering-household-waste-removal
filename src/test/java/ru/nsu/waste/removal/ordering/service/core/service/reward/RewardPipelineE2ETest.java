@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RewardPipelineE2ETest {
 
     private static final String TZ_ALMATY = "Asia/Almaty";
+    private static final long INITIAL_USER_POINTS = 1000L;
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16.3-alpine")
@@ -90,8 +91,8 @@ class RewardPipelineE2ETest {
 
         long appliedDelta = findLatestPointsDifferenceByType(userId, UserActionEventType.SEPARATE_CHOSEN);
         assertTrue(appliedDelta > 0L);
-        assertEquals(appliedDelta, findUserTotalPoints(userId));
-        assertEquals(appliedDelta, findUserCurrentPoints(userId));
+        assertEquals(INITIAL_USER_POINTS + appliedDelta, findUserTotalPoints(userId));
+        assertEquals(INITIAL_USER_POINTS + appliedDelta, findUserCurrentPoints(userId));
     }
 
     @Test
@@ -124,9 +125,35 @@ class RewardPipelineE2ETest {
         int processed = userActionEventProcessorService.processPendingEvents();
         assertEquals(1, processed);
 
-        assertEquals(120L, findUserTotalPoints(userId));
-        assertEquals(120L, findUserCurrentPoints(userId));
+        assertEquals(INITIAL_USER_POINTS + 120L, findUserTotalPoints(userId));
+        assertEquals(INITIAL_USER_POINTS + 120L, findUserCurrentPoints(userId));
         assertEquals(120L, findLatestPointsDifferenceByType(userId, UserActionEventType.ECO_TASK_COMPLETED));
+    }
+
+    @Test
+    void processPendingEvents_whenOrderPaidWithPointsEventExists_doesNotChangeBalances() {
+        long userId = registerAchiever("77007770004");
+        jdbcTemplate.update(
+                """
+                        update user_info
+                        set total_points = 300, current_points = 220, habit_strength = 100000
+                        where id = ?
+                        """,
+                userId
+        );
+        userActionHistoryRepository.addEvent(
+                userId,
+                UserActionEventType.ORDER_PAID_WITH_POINTS.dbName(),
+                "{\"orderId\":10,\"spentPoints\":100}",
+                -100
+        );
+
+        int processed = userActionEventProcessorService.processPendingEvents();
+        assertEquals(1, processed);
+
+        assertEquals(300L, findUserTotalPoints(userId));
+        assertEquals(220L, findUserCurrentPoints(userId));
+        assertEquals(-100L, findLatestPointsDifferenceByType(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
     }
 
     private void addRewardTriggerEvent(long userId, UserActionEventType eventType, boolean success) {

@@ -23,7 +23,12 @@ public class UserLeaderboardRepository {
             ),
                  totals as (
                      select ui.id as user_id,
-                            coalesce(sum(uah.points_difference), 0) as score
+                            coalesce(sum(
+                                case
+                                    when uah.points_difference > 0 then uah.points_difference
+                                    else 0
+                                end
+                            ), 0) as score
                      from user_info ui
                               join address a on a.id = ui.address_id
                               join target_user tu on tu.postal_code = a.postal_code

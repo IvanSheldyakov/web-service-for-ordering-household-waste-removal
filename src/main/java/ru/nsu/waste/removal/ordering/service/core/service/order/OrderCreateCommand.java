@@ -5,6 +5,7 @@ import java.util.List;
 public record OrderCreateCommand(
         String type,
         String slotKey,
-        List<Long> fractionIds
+        List<Long> fractionIds,
+        boolean payWithPoints
 ) {
 }

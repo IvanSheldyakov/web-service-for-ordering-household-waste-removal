@@ -16,9 +16,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
-import ru.nsu.waste.removal.ordering.service.core.model.user.UserRegistrationResult;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.order.SlotOption;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserRegistrationResult;
 import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventProcessorService;
 import ru.nsu.waste.removal.ordering.service.core.service.registration.RegistrationService;
 
@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -91,48 +92,77 @@ class OrderCreateServiceE2ETest {
     }
 
     @Test
-    void createOrder_whenMixedAndRegularSlot_createsOrderWithoutFractionsAndOnlyOrderCreatedEvent() {
+    void createOrder_withoutPointPaymentFlag_stillPaysWithPoints() {
         long userId = registerAchiever("77008880001", PRIMARY_POSTAL_CODE);
-        registerAchiever("77008880002", OTHER_POSTAL_CODE);
+        setUserRewardState(userId, 250L, 180L, 0L);
 
         SlotOption regularSlot = findRegularSlot(userId);
         long orderId = orderCreateService.createOrder(
                 userId,
-                new OrderCreateCommand("MIXED", regularSlot.key(), List.of(999L))
+                new OrderCreateCommand("MIXED", regularSlot.key(), List.of(999L), false)
         );
 
-        assertOrderRow(orderId, "MIXED", "NEW", regularSlot, false, PRIMARY_POSTAL_CODE);
+        OrderRow row = findOrderRow(orderId);
+        assertEquals("MIXED", row.type());
+        assertEquals("NEW", row.status());
+        assertEquals("PAID_WITH_POINTS", row.paymentStatus());
+        assertNotNull(row.paidAt());
         assertEquals(0L, countOrderFractions(orderId));
-
+        assertEquals(180L - row.costPoints(), findUserCurrentPoints(userId));
+        assertEquals(250L, findUserTotalPoints(userId));
+        assertEquals(1L, countEvents(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
         assertEquals(1L, countEvents(userId, UserActionEventType.ORDER_CREATED));
-        assertEquals(0L, countEvents(userId, UserActionEventType.SEPARATE_CHOSEN));
-        assertEquals(0L, countEvents(userId, UserActionEventType.GREEN_SLOT_CHOSEN));
     }
 
     @Test
-    void createOrder_whenSeparateAndRegularSlot_createsFractionsAndSeparateEvent() {
-        long userId = registerAchiever("77008880003", PRIMARY_POSTAL_CODE);
+    void createOrder_withPointPayment_whenEnoughBalance_spendsCurrentOnlyAndMarksOrderPaid() {
+        long userId = registerAchiever("77008880002", PRIMARY_POSTAL_CODE);
+        setUserRewardState(userId, 420L, 240L, 0L);
 
         SlotOption regularSlot = findRegularSlot(userId);
-        List<Long> fractions = findTwoActiveFractionIds();
-
         long orderId = orderCreateService.createOrder(
                 userId,
-                new OrderCreateCommand("SEPARATE", regularSlot.key(), fractions)
+                new OrderCreateCommand("MIXED", regularSlot.key(), List.of(), true)
         );
 
-        assertOrderRow(orderId, "SEPARATE", "NEW", regularSlot, false, PRIMARY_POSTAL_CODE);
-        assertEquals(2L, countOrderFractions(orderId));
+        OrderRow row = findOrderRow(orderId);
+        assertEquals("PAID_WITH_POINTS", row.paymentStatus());
+        assertNotNull(row.paidAt());
+        assertTrue(row.costPoints() > 0L);
+        assertEquals(240L - row.costPoints(), findUserCurrentPoints(userId));
+        assertEquals(420L, findUserTotalPoints(userId));
 
-        assertEquals(1L, countEvents(userId, UserActionEventType.ORDER_CREATED));
-        assertEquals(1L, countEvents(userId, UserActionEventType.SEPARATE_CHOSEN));
-        assertEquals(0L, countEvents(userId, UserActionEventType.GREEN_SLOT_CHOSEN));
+        assertEquals(1L, countEvents(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
+        assertEquals(-row.costPoints(), sumPointsByType(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
     }
 
     @Test
-    void createOrder_whenSeparateAndGreenSlot_setsGreenAndTriggersRewardableEvents() {
+    void createOrder_whenInsufficientBalance_throwsAndDoesNotCreateOrder() {
+        long userId = registerAchiever("77008880003", PRIMARY_POSTAL_CODE);
+        setUserRewardState(userId, 500L, 40L, 0L);
+
+        SlotOption regularSlot = findRegularSlot(userId);
+        long beforeOrders = countOrdersByUser(userId);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> orderCreateService.createOrder(
+                        userId,
+                        new OrderCreateCommand("MIXED", regularSlot.key(), List.of(), false)
+                )
+        );
+
+        assertEquals(beforeOrders, countOrdersByUser(userId));
+        assertEquals(40L, findUserCurrentPoints(userId));
+        assertEquals(500L, findUserTotalPoints(userId));
+        assertEquals(0L, countEvents(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
+    }
+
+    @Test
+    void createOrder_withPointPayment_andSeparateAndGreen_keepsRewardPipelineCompatible() {
         long userId = registerAchiever("77008880004", PRIMARY_POSTAL_CODE);
         long neighborId = registerAchiever("77008880005", PRIMARY_POSTAL_CODE);
+        setUserRewardState(userId, 300L, 300L, 0L);
 
         SlotOption targetSlot = findRegularSlot(userId);
         addNeighborOrder(neighborId, PRIMARY_POSTAL_CODE, "NEW", targetSlot.pickupFrom(), targetSlot.pickupTo(), 1);
@@ -146,17 +176,28 @@ class OrderCreateServiceE2ETest {
 
         long orderId = orderCreateService.createOrder(
                 userId,
-                new OrderCreateCommand("SEPARATE", greenSlot.key(), findTwoActiveFractionIds())
+                new OrderCreateCommand("SEPARATE", greenSlot.key(), findTwoActiveFractionIds(), true)
         );
 
-        assertOrderRow(orderId, "SEPARATE", "NEW", greenSlot, true, PRIMARY_POSTAL_CODE);
+        OrderRow row = findOrderRow(orderId);
+        assertEquals("SEPARATE", row.type());
+        assertEquals("PAID_WITH_POINTS", row.paymentStatus());
+        assertEquals(300L - row.costPoints(), findUserCurrentPoints(userId));
+        assertEquals(300L, findUserTotalPoints(userId));
+
         assertEquals(1L, countEvents(userId, UserActionEventType.ORDER_CREATED));
+        assertEquals(1L, countEvents(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
         assertEquals(1L, countEvents(userId, UserActionEventType.SEPARATE_CHOSEN));
         assertEquals(1L, countEvents(userId, UserActionEventType.GREEN_SLOT_CHOSEN));
+        assertEquals(-row.costPoints(), sumPointsByType(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
 
         userActionEventProcessorService.processPendingEvents();
-        assertTrue(findUserTotalPoints(userId) > 0L);
-        assertTrue(findUserCurrentPoints(userId) > 0L);
+
+        long earnedDelta = sumPointsByType(userId, UserActionEventType.SEPARATE_CHOSEN)
+                + sumPointsByType(userId, UserActionEventType.GREEN_SLOT_CHOSEN);
+        assertEquals(300L + earnedDelta, findUserTotalPoints(userId));
+        assertEquals(300L - row.costPoints() + earnedDelta, findUserCurrentPoints(userId));
+        assertEquals(-row.costPoints(), sumPointsByType(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
     }
 
     @Test
@@ -169,7 +210,7 @@ class OrderCreateServiceE2ETest {
                 IllegalStateException.class,
                 () -> orderCreateService.createOrder(
                         userId,
-                        new OrderCreateCommand("SEPARATE", regularSlot.key(), List.of())
+                        new OrderCreateCommand("SEPARATE", regularSlot.key(), List.of(), false)
                 )
         );
 
@@ -180,7 +221,8 @@ class OrderCreateServiceE2ETest {
                         new OrderCreateCommand(
                                 "MIXED",
                                 "2026-03-20T10:00:00+06:00|2026-03-20T12:00:00+06:00",
-                                List.of()
+                                List.of(),
+                                false
                         )
                 )
         );
@@ -189,7 +231,7 @@ class OrderCreateServiceE2ETest {
                 IllegalStateException.class,
                 () -> orderCreateService.createOrder(
                         userId,
-                        new OrderCreateCommand("SEPARATE", regularSlot.key(), List.of(987654321L))
+                        new OrderCreateCommand("SEPARATE", regularSlot.key(), List.of(987654321L), false)
                 )
         );
 
@@ -204,7 +246,7 @@ class OrderCreateServiceE2ETest {
         SlotOption firstSlot = findRegularSlot(userId);
         long firstOrderId = orderCreateService.createOrder(
                 userId,
-                new OrderCreateCommand("MIXED", firstSlot.key(), List.of())
+                new OrderCreateCommand("MIXED", firstSlot.key(), List.of(), false)
         );
 
         updateUserPostalCode(userId, OTHER_POSTAL_CODE);
@@ -212,7 +254,7 @@ class OrderCreateServiceE2ETest {
         SlotOption secondSlot = findRegularSlot(userId);
         long secondOrderId = orderCreateService.createOrder(
                 userId,
-                new OrderCreateCommand("MIXED", secondSlot.key(), List.of())
+                new OrderCreateCommand("MIXED", secondSlot.key(), List.of(), false)
         );
 
         assertEquals(PRIMARY_POSTAL_CODE, findOrderPostalCode(firstOrderId));
@@ -226,14 +268,7 @@ class OrderCreateServiceE2ETest {
                 .orElseThrow(() -> new IllegalStateException("Regular slot was expected"));
     }
 
-    private void assertOrderRow(
-            long orderId,
-            String expectedType,
-            String expectedStatus,
-            SlotOption expectedSlot,
-            boolean expectedGreen,
-            String expectedPostalCode
-    ) {
+    private OrderRow findOrderRow(long orderId) {
         OrderRow row = jdbcTemplate.queryForObject(
                 """
                         select id,
@@ -243,7 +278,9 @@ class OrderCreateServiceE2ETest {
                                pickup_to,
                                green_chosen,
                                postal_code,
-                               cost_points
+                               cost_points,
+                               payment_status,
+                               paid_at
                         from order_info
                         where id = ?
                         order by created_at desc
@@ -257,22 +294,32 @@ class OrderCreateServiceE2ETest {
                         rs.getObject("pickup_to", OffsetDateTime.class),
                         rs.getBoolean("green_chosen"),
                         rs.getString("postal_code"),
-                        rs.getLong("cost_points")
+                        rs.getLong("cost_points"),
+                        rs.getString("payment_status"),
+                        rs.getObject("paid_at", OffsetDateTime.class)
                 ),
                 orderId
         );
-
         if (row == null) {
             throw new IllegalStateException("Order row is not found");
         }
+        return row;
+    }
 
-        assertEquals(expectedType, row.type());
-        assertEquals(expectedStatus, row.status());
-        assertEquals(expectedSlot.pickupFrom().toInstant(), row.pickupFrom().toInstant());
-        assertEquals(expectedSlot.pickupTo().toInstant(), row.pickupTo().toInstant());
-        assertEquals(expectedGreen, row.greenChosen());
-        assertEquals(expectedPostalCode, row.postalCode());
-        assertTrue(row.costPoints() > 0L);
+    private void setUserRewardState(long userId, long totalPoints, long currentPoints, long habitStrength) {
+        jdbcTemplate.update(
+                """
+                        update user_info
+                        set total_points = ?,
+                            current_points = ?,
+                            habit_strength = ?
+                        where id = ?
+                        """,
+                totalPoints,
+                currentPoints,
+                habitStrength,
+                userId
+        );
     }
 
     private List<Long> findTwoActiveFractionIds() {
@@ -323,6 +370,21 @@ class OrderCreateServiceE2ETest {
                 eventType.dbName()
         );
         return count == null ? 0L : count;
+    }
+
+    private long sumPointsByType(long userId, UserActionEventType eventType) {
+        Long sum = jdbcTemplate.queryForObject(
+                """
+                        select coalesce(sum(points_difference), 0)
+                        from user_action_history
+                        where user_id = ?
+                          and event_type = ?
+                        """,
+                Long.class,
+                userId,
+                eventType.dbName()
+        );
+        return sum == null ? 0L : sum;
     }
 
     private void updateUserPostalCode(long userId, String newPostalCode) {
@@ -452,7 +514,9 @@ class OrderCreateServiceE2ETest {
             OffsetDateTime pickupTo,
             boolean greenChosen,
             String postalCode,
-            long costPoints
+            long costPoints,
+            String paymentStatus,
+            OffsetDateTime paidAt
     ) {
     }
 
@@ -466,4 +530,3 @@ class OrderCreateServiceE2ETest {
         }
     }
 }
-

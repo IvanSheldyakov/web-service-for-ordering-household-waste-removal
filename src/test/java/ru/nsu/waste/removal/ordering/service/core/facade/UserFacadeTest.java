@@ -60,7 +60,7 @@ class UserFacadeTest {
     private UserFacade userFacade;
 
     @Test
-    void getHome_convertsActiveOrderTimeToUserTimezone() {
+    void getHome_convertsActiveOrderTimeToUserTimezoneAndMapsPaymentInfo() {
         long userId = 42L;
         when(userInfoService.getProfileByUserId(userId)).thenReturn(
                 new UserProfileInfo(userId, UserType.EXPLORER, 100L, 40L, "630000")
@@ -76,6 +76,8 @@ class UserFacadeTest {
                         "NEW",
                         OffsetDateTime.parse("2026-03-03T07:00:00+00:00"),
                         OffsetDateTime.parse("2026-03-03T09:00:00+00:00"),
+                        100L,
+                        "PAID_WITH_POINTS",
                         List.of("Пластик")
                 )
         ));
@@ -93,5 +95,8 @@ class UserFacadeTest {
                 OffsetDateTime.parse("2026-03-03T16:00:00+07:00"),
                 order.pickupTo()
         );
+        assertEquals(100L, order.costPoints());
+        assertEquals("Оплачен баллами", order.paymentStatus());
     }
 }
+
