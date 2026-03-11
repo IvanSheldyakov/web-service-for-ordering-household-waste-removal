@@ -51,6 +51,8 @@ public record UserHomeViewModel(
             String status,
             OffsetDateTime pickupFrom,
             OffsetDateTime pickupTo,
+            long costPoints,
+            String paymentStatus,
             List<String> fractions
     ) {
     }

@@ -10,8 +10,10 @@ import ru.nsu.waste.removal.ordering.service.core.model.event.OrderCreatedEventC
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderCreateParams;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderKey;
+import ru.nsu.waste.removal.ordering.service.core.model.order.OrderPaymentStatus;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderType;
 import ru.nsu.waste.removal.ordering.service.core.model.order.SlotOption;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserRewardState;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.order.OrderCreateRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.order.WasteFractionRepository;
@@ -26,7 +28,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class OrderCreateService {
 
-    private static final long DEFAULT_COST_POINTS = 100L;
     private static final long ZERO_POINTS_DIFFERENCE = 0L;
     private static final String INVALID_TYPE_MESSAGE = "Некорректный тип вывоза";
     private static final String INVALID_SLOT_KEY_MESSAGE = "Выбранный слот недоступен";
@@ -37,6 +38,8 @@ public class OrderCreateService {
     private final WasteFractionRepository wasteFractionRepository;
     private final OrderCreateRepository orderCreateRepository;
     private final OrderCreateParamsMapper orderCreateParamsMapper;
+    private final OrderPricingService orderPricingService;
+    private final OrderPaymentService orderPaymentService;
     private final UserActionHistoryRepository userActionHistoryRepository;
     private final ObjectMapper objectMapper;
 
@@ -45,6 +48,14 @@ public class OrderCreateService {
         OrderType type = resolveOrderType(command.type());
         SlotOption selectedSlot = resolveSelectedSlot(userId, command.slotKey());
         List<Long> fractionIds = normalizeFractions(command.fractionIds(), type);
+        long costPoints = orderPricingService.getFixedCostPoints();
+
+        UserRewardState rewardStateForPayment = null;
+        OrderPaymentStatus paymentStatus = OrderPaymentStatus.UNPAID;
+        if (command.payWithPoints()) {
+            rewardStateForPayment = orderPaymentService.lockRewardStateForPointsPayment(userId, costPoints);
+            paymentStatus = OrderPaymentStatus.PAID_WITH_POINTS;
+        }
 
         GeoClusterKey clusterKey = geoClusterService.getClusterKeyForOrderCreation(userId);
         OrderCreateParams orderCreateParams = orderCreateParamsMapper.toOrderCreateParams(
@@ -52,7 +63,8 @@ public class OrderCreateService {
                 type,
                 selectedSlot,
                 clusterKey,
-                DEFAULT_COST_POINTS
+                costPoints,
+                paymentStatus
         );
         OrderKey orderKey = orderCreateRepository.createOrder(orderCreateParams);
 
@@ -61,6 +73,18 @@ public class OrderCreateService {
         }
 
         addOrderCreatedEvent(userId, orderKey, type, selectedSlot, fractionIds);
+
+        if (command.payWithPoints()) {
+            orderPaymentService.payForOrderWithPoints(
+                    userId,
+                    rewardStateForPayment,
+                    orderKey,
+                    type,
+                    selectedSlot,
+                    fractionIds,
+                    costPoints
+            );
+        }
 
         if (type == OrderType.SEPARATE) {
             addSuccessEvent(userId, UserActionEventType.SEPARATE_CHOSEN);
@@ -176,3 +200,4 @@ public class OrderCreateService {
     ) {
     }
 }
+

@@ -17,4 +17,6 @@ public class OrderCreateForm {
     private String slotKey;
 
     private List<Long> fractionIds;
+
+    private boolean payWithPoints;
 }

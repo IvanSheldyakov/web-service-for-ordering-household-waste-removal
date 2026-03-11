@@ -9,6 +9,7 @@ public record OrderCreateParams(
         OffsetDateTime pickupTo,
         boolean greenChosen,
         String clusterKey,
-        long costPoints
+        long costPoints,
+        OrderPaymentStatus paymentStatus
 ) {
 }

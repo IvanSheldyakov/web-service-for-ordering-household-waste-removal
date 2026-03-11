@@ -34,6 +34,8 @@
                     <span th:text="${#temporals.format(order.pickupTo, 'yyyy-MM-dd HH:mm')}">2026-03-01 12:00</span>
                 </p>
                 <p><strong>Статус:</strong> <span th:text="${order.status}">Новый</span></p>
+                <p><strong>Стоимость:</strong> <span th:text="${order.costPoints}">100</span> баллов</p>
+                <p><strong>Оплата:</strong> <span th:text="${order.paymentStatus}">Без внутренней оплаты</span></p>
 
                 <p th:if="${order.type == 'SEPARATE' and #lists.isEmpty(order.fractions)}">
                     <strong>Фракции:</strong> Фракции не выбраны
@@ -90,3 +92,4 @@
 </main>
 </body>
 </html>
+

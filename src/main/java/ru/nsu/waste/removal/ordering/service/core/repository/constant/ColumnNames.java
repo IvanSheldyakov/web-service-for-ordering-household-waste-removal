@@ -132,5 +132,9 @@ public final class ColumnNames {
 
     public static final String COST_POINTS = "cost_points";
 
+    public static final String PAYMENT_STATUS = "payment_status";
+
+    public static final String PAID_AT = "paid_at";
+
     public static final String IS_ACTIVE = "is_active";
 }

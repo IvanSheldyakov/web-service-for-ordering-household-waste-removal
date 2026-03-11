@@ -13,6 +13,8 @@ import ru.nsu.waste.removal.ordering.service.core.repository.order.WasteFraction
 import ru.nsu.waste.removal.ordering.service.core.service.order.GreenSlotService;
 import ru.nsu.waste.removal.ordering.service.core.service.order.OrderCreateCommand;
 import ru.nsu.waste.removal.ordering.service.core.service.order.OrderCreateService;
+import ru.nsu.waste.removal.ordering.service.core.service.order.OrderPricingService;
+import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
 
 import java.time.OffsetDateTime;
 import java.util.Comparator;
@@ -25,15 +27,19 @@ public class OrderCreateFacade {
     private static final String TYPE_FIELD = "type";
     private static final String SLOT_KEY_FIELD = "slotKey";
     private static final String FRACTION_IDS_FIELD = "fractionIds";
+    private static final String PAY_WITH_POINTS_FIELD = "payWithPoints";
 
     private static final String INVALID_TYPE_MESSAGE = "Некорректный тип вывоза";
     private static final String INVALID_SLOT_KEY_MESSAGE = "Выбранный слот недоступен";
     private static final String EMPTY_FRACTIONS_MESSAGE = "Выберите хотя бы одну фракцию";
     private static final String INVALID_FRACTIONS_MESSAGE = "Некорректный выбор фракций";
+    private static final String INSUFFICIENT_POINTS_MESSAGE = "Недостаточно баллов для оплаты заказа";
 
     private final WasteFractionRepository wasteFractionRepository;
     private final GreenSlotService greenSlotService;
     private final OrderCreateService orderCreateService;
+    private final UserInfoService userInfoService;
+    private final OrderPricingService orderPricingService;
 
     public List<WasteFraction> getActiveFractions() {
         return wasteFractionRepository.findActiveFractions();
@@ -47,10 +53,23 @@ public class OrderCreateFacade {
                 .toList();
     }
 
+    public long getCurrentPoints(long userId) {
+        return userInfoService.getProfileByUserId(userId).currentPoints();
+    }
+
+    public long getFixedCostPoints() {
+        return orderPricingService.getFixedCostPoints();
+    }
+
+    public boolean hasEnoughPointsForPayment(long userId) {
+        return getCurrentPoints(userId) >= getFixedCostPoints();
+    }
+
     public void validate(OrderCreateForm form, BindingResult bindingResult, long userId) {
         validateType(form, bindingResult);
         validateSlot(form, bindingResult, userId);
         validateFractions(form, bindingResult);
+        validatePointsPayment(form, bindingResult, userId);
     }
 
     public long createOrder(long userId, OrderCreateForm form) {
@@ -59,7 +78,8 @@ public class OrderCreateFacade {
                 new OrderCreateCommand(
                         form.getType(),
                         form.getSlotKey(),
-                        form.getFractionIds()
+                        form.getFractionIds(),
+                        form.isPayWithPoints()
                 )
         );
     }
@@ -68,7 +88,13 @@ public class OrderCreateFacade {
         if (bindingResult.hasFieldErrors(TYPE_FIELD)) {
             return;
         }
-        resolveOrderType(form.getType());
+        if (resolveOrderType(form.getType()) == null) {
+            bindingResult.addError(new FieldError(
+                    AttributeNames.ORDER_CREATE_FORM,
+                    TYPE_FIELD,
+                    INVALID_TYPE_MESSAGE
+            ));
+        }
     }
 
     private void validateSlot(OrderCreateForm form, BindingResult bindingResult, long userId) {
@@ -129,6 +155,21 @@ public class OrderCreateFacade {
         }
     }
 
+    private void validatePointsPayment(OrderCreateForm form, BindingResult bindingResult, long userId) {
+        if (!form.isPayWithPoints()) {
+            return;
+        }
+        long currentPoints = getCurrentPoints(userId);
+        long fixedCostPoints = getFixedCostPoints();
+        if (currentPoints < fixedCostPoints) {
+            bindingResult.addError(new FieldError(
+                    AttributeNames.ORDER_CREATE_FORM,
+                    PAY_WITH_POINTS_FIELD,
+                    INSUFFICIENT_POINTS_MESSAGE
+            ));
+        }
+    }
+
     private OrderType resolveOrderType(String type) {
         return OrderType.tryFrom(type).orElse(null);
     }
@@ -162,3 +203,4 @@ public class OrderCreateFacade {
     ) {
     }
 }
+

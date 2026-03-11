@@ -25,10 +25,8 @@ public class OrderCreateController {
 
     @GetMapping(Paths.USER_ORDER_CREATE)
     public String getOrderCreate(@PathVariable(Paths.USER_ID) long userId, Model model) {
-        model.addAttribute(AttributeNames.USER_ID, userId);
         model.addAttribute(AttributeNames.ORDER_CREATE_FORM, new OrderCreateForm());
-        model.addAttribute(AttributeNames.ACTIVE_FRACTIONS, orderCreateFacade.getActiveFractions());
-        model.addAttribute(AttributeNames.SLOT_OPTIONS, orderCreateFacade.getSlotOptions(userId));
+        enrichModelForForm(userId, model);
         return TemplateNames.ORDER_CREATE;
     }
 
@@ -60,5 +58,8 @@ public class OrderCreateController {
         model.addAttribute(AttributeNames.USER_ID, userId);
         model.addAttribute(AttributeNames.ACTIVE_FRACTIONS, orderCreateFacade.getActiveFractions());
         model.addAttribute(AttributeNames.SLOT_OPTIONS, orderCreateFacade.getSlotOptions(userId));
+        model.addAttribute(AttributeNames.CURRENT_POINTS, orderCreateFacade.getCurrentPoints(userId));
+        model.addAttribute(AttributeNames.FIXED_COST_POINTS, orderCreateFacade.getFixedCostPoints());
+        model.addAttribute(AttributeNames.ENOUGH_POINTS_FOR_PAYMENT, orderCreateFacade.hasEnoughPointsForPayment(userId));
     }
 }

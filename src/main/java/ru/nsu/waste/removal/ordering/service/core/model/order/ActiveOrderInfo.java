@@ -9,6 +9,8 @@ public record ActiveOrderInfo(
         String status,
         OffsetDateTime pickupFrom,
         OffsetDateTime pickupTo,
+        long costPoints,
+        String paymentStatus,
         List<String> fractions
 ) {
 }

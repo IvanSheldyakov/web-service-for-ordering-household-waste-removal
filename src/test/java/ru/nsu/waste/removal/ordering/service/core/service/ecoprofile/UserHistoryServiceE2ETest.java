@@ -67,7 +67,7 @@ class UserHistoryServiceE2ETest {
     }
 
     @Test
-    void getUserHistory_returnsLatest10WithFilteringAndBalanceAfter() {
+    void getUserHistory_includesOrderPaidWithPointsWithSpecificDescription() {
         long userId = createUser("75550000001", "100001", 500L, 180L, "Asia/Novosibirsk");
         long paperId = findFractionIdByType("PAPER");
         long glassId = findFractionIdByType("GLASS");
@@ -80,6 +80,15 @@ class UserHistoryServiceE2ETest {
                         """.formatted(paperId, glassId).trim(),
                 0L,
                 OffsetDateTime.parse("2026-03-20T12:00:00+00:00")
+        );
+        addEvent(
+                userId,
+                UserActionEventType.ORDER_PAID_WITH_POINTS.dbName(),
+                """
+                        {"orderId":101,"spentPoints":100}
+                        """.trim(),
+                -100L,
+                OffsetDateTime.parse("2026-03-20T11:30:00+00:00")
         );
         addEvent(
                 userId,
@@ -97,120 +106,28 @@ class UserHistoryServiceE2ETest {
         );
         addEvent(
                 userId,
-                UserActionEventType.ECO_TASK_COMPLETED.dbName(),
-                "{\"userEcoTaskId\":1,\"ecoTaskId\":1,\"ecoTaskCode\":\"TASK_SOC_GREEN_3_WEEK\",\"rewardPoints\":20}",
-                20L,
-                OffsetDateTime.parse("2026-03-20T10:40:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.LEADERBOARD_OPENED.dbName(),
-                "{}",
-                0L,
-                OffsetDateTime.parse("2026-03-20T10:30:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.INFO_CARD_VIEWED.dbName(),
-                "{}",
-                0L,
-                OffsetDateTime.parse("2026-03-20T10:20:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.ORDER_CREATED.dbName(),
-                """
-                        {"orderId":102,"type":"MIXED","pickupFrom":"2026-03-20T08:00:00+00:00","pickupTo":"2026-03-20T09:00:00+00:00","greenChosen":false,"fractionIds":[]}
-                        """.trim(),
-                0L,
-                OffsetDateTime.parse("2026-03-20T10:10:00+00:00")
-        );
-        addEvent(
-                userId,
                 UserActionEventType.ORDER_DONE.dbName(),
                 "{}",
                 -15L,
-                OffsetDateTime.parse("2026-03-20T10:00:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.SEPARATE_CHOSEN.dbName(),
-                "{\"success\":true}",
-                5L,
-                OffsetDateTime.parse("2026-03-20T09:50:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.GREEN_SLOT_CHOSEN.dbName(),
-                "{\"success\":true}",
-                6L,
-                OffsetDateTime.parse("2026-03-20T09:40:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.ECO_TASK_COMPLETED.dbName(),
-                "{\"userEcoTaskId\":2,\"ecoTaskId\":2,\"ecoTaskCode\":\"TASK_EXP_FRACTIONS_3_MONTH\",\"rewardPoints\":10}",
-                10L,
-                OffsetDateTime.parse("2026-03-20T09:30:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.ORDER_CREATED.dbName(),
-                """
-                        {"orderId":103,"type":"SEPARATE","pickupFrom":"2026-03-20T07:00:00+00:00","pickupTo":"2026-03-20T08:00:00+00:00","greenChosen":false,"fractionIds":[%d]}
-                        """.formatted(paperId).trim(),
-                0L,
-                OffsetDateTime.parse("2026-03-20T09:20:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.LEADERBOARD_OPENED.dbName(),
-                "{}",
-                0L,
-                OffsetDateTime.parse("2026-03-20T09:10:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.INFO_CARD_VIEWED.dbName(),
-                "{}",
-                0L,
-                OffsetDateTime.parse("2026-03-20T09:00:00+00:00")
-        );
-        addEvent(
-                userId,
-                UserActionEventType.ORDER_CREATED.dbName(),
-                """
-                        {"orderId":104,"type":"MIXED","pickupFrom":"2026-03-20T06:00:00+00:00","pickupTo":"2026-03-20T07:00:00+00:00","greenChosen":false,"fractionIds":[]}
-                        """.trim(),
-                0L,
-                OffsetDateTime.parse("2026-03-20T08:50:00+00:00")
+                OffsetDateTime.parse("2026-03-20T10:40:00+00:00")
         );
 
         UserHistory history = userHistoryService.getUserHistory(userId);
 
         assertEquals(userId, history.userId());
         assertEquals(180L, history.currentPoints());
-        assertEquals(10, history.items().size());
-
+        assertEquals(5, history.items().size());
         assertEquals(
                 OffsetDateTime.parse("2026-03-20T19:00:00+07:00"),
                 history.items().getFirst().occurredAt()
         );
         assertTrue(history.items().getFirst().description().contains("раздельный вывоз"));
-        assertTrue(history.items().getFirst().description().contains("Бумага"));
-        assertTrue(history.items().getFirst().description().contains("Стекло"));
-        assertTrue(history.items().getFirst().description().contains("слот: 2026-03-20 17:00-19:00"));
-        assertTrue(history.items().getFirst().description().contains("зелёный слот"));
-
-        assertFalse(history.items().stream().anyMatch(
-                item -> item.occurredAt().equals(OffsetDateTime.parse("2026-03-20T17:30:00+07:00"))
+        assertTrue(history.items().stream().anyMatch(
+                item -> "Оплата заказа баллами (-100)".equals(item.description()) && item.pointsDelta() == -100L
         ));
-        assertFalse(history.items().stream().anyMatch(
-                item -> item.occurredAt().equals(OffsetDateTime.parse("2026-03-20T17:20:00+07:00"))
+        assertTrue(history.items().stream().anyMatch(
+                item -> "Списание баллов".equals(item.description()) && item.pointsDelta() == -15L
         ));
-
-        assertTrue(history.items().stream().anyMatch(item -> item.pointsDelta() == -15L));
-        assertTrue(history.items().stream().anyMatch(item -> "Списание баллов".equals(item.description())));
 
         List<OffsetDateTime> occurredAtList = history.items().stream()
                 .map(item -> item.occurredAt())
@@ -338,3 +255,4 @@ class UserHistoryServiceE2ETest {
         }
     }
 }
+

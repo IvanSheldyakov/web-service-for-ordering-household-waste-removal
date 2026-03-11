@@ -49,4 +49,10 @@ public final class AttributeNames {
     public static final String ACTIVE_FRACTIONS = "activeFractions";
 
     public static final String SLOT_OPTIONS = "slotOptions";
+
+    public static final String CURRENT_POINTS = "currentPoints";
+
+    public static final String FIXED_COST_POINTS = "fixedCostPoints";
+
+    public static final String ENOUGH_POINTS_FOR_PAYMENT = "enoughPointsForPayment";
 }

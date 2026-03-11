@@ -5,6 +5,7 @@ import java.util.Locale;
 public enum UserActionEventType {
     ORDER_DONE,
     ORDER_CREATED,
+    ORDER_PAID_WITH_POINTS,
     SEPARATE_CHOSEN,
     GREEN_SLOT_CHOSEN,
     LEVEL_UP,

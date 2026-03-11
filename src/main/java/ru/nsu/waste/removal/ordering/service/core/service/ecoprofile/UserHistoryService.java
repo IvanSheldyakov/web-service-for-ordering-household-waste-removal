@@ -31,12 +31,14 @@ public class UserHistoryService {
 
     private static final int DEFAULT_LIMIT = 10;
     private static final String EVENT_TYPE_ORDER_CREATED = UserActionEventType.ORDER_CREATED.dbName();
+    private static final String EVENT_TYPE_ORDER_PAID_WITH_POINTS = UserActionEventType.ORDER_PAID_WITH_POINTS.dbName();
     private static final String EVENT_TYPE_SEPARATE_CHOSEN = UserActionEventType.SEPARATE_CHOSEN.dbName();
     private static final String EVENT_TYPE_GREEN_SLOT_CHOSEN = UserActionEventType.GREEN_SLOT_CHOSEN.dbName();
     private static final String EVENT_TYPE_ECO_TASK_COMPLETED = UserActionEventType.ECO_TASK_COMPLETED.dbName();
     private static final String ORDER_TYPE_SEPARATE = "SEPARATE";
 
     private static final String ORDER_CREATED_FALLBACK = "Оформлен заказ";
+    private static final String ORDER_PAID_WITH_POINTS_DESCRIPTION = "Оплата заказа баллами";
     private static final String SEPARATE_CHOSEN_DESCRIPTION = "Начисление за раздельный вывоз";
     private static final String GREEN_SLOT_CHOSEN_DESCRIPTION = "Начисление за выбор зелёного слота";
     private static final String ECO_TASK_COMPLETED_FALLBACK = "Выполнено эко-задание";
@@ -54,6 +56,7 @@ public class UserHistoryService {
 
     private static final List<String> INCLUDED_EVENT_TYPES = List.of(
             EVENT_TYPE_ORDER_CREATED,
+            EVENT_TYPE_ORDER_PAID_WITH_POINTS,
             EVENT_TYPE_SEPARATE_CHOSEN,
             EVENT_TYPE_GREEN_SLOT_CHOSEN,
             EVENT_TYPE_ECO_TASK_COMPLETED
@@ -138,14 +141,16 @@ public class UserHistoryService {
     }
 
     private String buildDescription(UserActionHistoryRecord event, ZoneId userZoneId) {
-        if (event.pointsDifference() < 0L) {
-            return POINTS_WITHDRAW_DESCRIPTION;
-        }
-
         String eventType = event.eventType() == null
                 ? ""
                 : event.eventType().trim().toUpperCase(Locale.ROOT);
 
+        if (EVENT_TYPE_ORDER_PAID_WITH_POINTS.equals(eventType)) {
+            return buildOrderPaidWithPointsDescription(event.pointsDifference());
+        }
+        if (event.pointsDifference() < 0L) {
+            return POINTS_WITHDRAW_DESCRIPTION;
+        }
         if (EVENT_TYPE_ORDER_CREATED.equals(eventType)) {
             return buildOrderCreatedDescription(event.content(), userZoneId);
         }
@@ -159,6 +164,13 @@ public class UserHistoryService {
             return buildEcoTaskCompletedDescription(event.content());
         }
         return DEFAULT_ACTION_DESCRIPTION;
+    }
+
+    private String buildOrderPaidWithPointsDescription(long pointsDifference) {
+        if (pointsDifference < 0L) {
+            return ORDER_PAID_WITH_POINTS_DESCRIPTION + " (" + pointsDifference + ")";
+        }
+        return ORDER_PAID_WITH_POINTS_DESCRIPTION;
     }
 
     private String buildOrderCreatedDescription(String contentJson, ZoneId userZoneId) {
@@ -249,3 +261,4 @@ public class UserHistoryService {
         }
     }
 }
+

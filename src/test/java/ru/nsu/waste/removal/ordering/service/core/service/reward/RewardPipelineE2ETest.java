@@ -129,6 +129,32 @@ class RewardPipelineE2ETest {
         assertEquals(120L, findLatestPointsDifferenceByType(userId, UserActionEventType.ECO_TASK_COMPLETED));
     }
 
+    @Test
+    void processPendingEvents_whenOrderPaidWithPointsEventExists_doesNotChangeBalances() {
+        long userId = registerAchiever("77007770004");
+        jdbcTemplate.update(
+                """
+                        update user_info
+                        set total_points = 300, current_points = 220, habit_strength = 100000
+                        where id = ?
+                        """,
+                userId
+        );
+        userActionHistoryRepository.addEvent(
+                userId,
+                UserActionEventType.ORDER_PAID_WITH_POINTS.dbName(),
+                "{\"orderId\":10,\"spentPoints\":100}",
+                -100
+        );
+
+        int processed = userActionEventProcessorService.processPendingEvents();
+        assertEquals(1, processed);
+
+        assertEquals(300L, findUserTotalPoints(userId));
+        assertEquals(220L, findUserCurrentPoints(userId));
+        assertEquals(-100L, findLatestPointsDifferenceByType(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
+    }
+
     private void addRewardTriggerEvent(long userId, UserActionEventType eventType, boolean success) {
         userActionHistoryRepository.addEvent(
                 userId,

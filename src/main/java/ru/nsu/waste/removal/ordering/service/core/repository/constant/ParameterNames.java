@@ -102,6 +102,8 @@ public final class ParameterNames {
 
     public static final String COST_POINTS = "costPoints";
 
+    public static final String PAYMENT_STATUS = "paymentStatus";
+
     public static final String ORDER_ID = "orderId";
 
     public static final String ORDER_CREATED_AT = "orderCreatedAt";

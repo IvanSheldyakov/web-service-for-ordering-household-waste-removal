@@ -58,6 +58,8 @@ public class OrderInfoRepository {
                    oi.status,
                    oi.pickup_from,
                    oi.pickup_to,
+                   oi.cost_points,
+                   oi.payment_status,
                    coalesce(
                            array_agg(wf.name order by wf.name) filter ( where wf.name is not null ),
                            '{}'::text[]
@@ -69,7 +71,7 @@ public class OrderInfoRepository {
                      left join waste_fraction wf on wf.id = owf.fraction_id
             where oi.user_id = :userId
               and oi.status in ('NEW', 'ASSIGNED')
-            group by oi.id, oi.created_at, oi.type, oi.status, oi.pickup_from, oi.pickup_to
+            group by oi.id, oi.created_at, oi.type, oi.status, oi.pickup_from, oi.pickup_to, oi.cost_points, oi.payment_status
             order by oi.pickup_from asc
             limit :limit
             """;
@@ -189,6 +191,8 @@ public class OrderInfoRepository {
                             rs.getString(ColumnNames.STATUS),
                             rs.getObject(ColumnNames.PICKUP_FROM, java.time.OffsetDateTime.class),
                             rs.getObject(ColumnNames.PICKUP_TO, java.time.OffsetDateTime.class),
+                            rs.getLong(ColumnNames.COST_POINTS),
+                            rs.getString(ColumnNames.PAYMENT_STATUS),
                             fractions
                     );
                 }
