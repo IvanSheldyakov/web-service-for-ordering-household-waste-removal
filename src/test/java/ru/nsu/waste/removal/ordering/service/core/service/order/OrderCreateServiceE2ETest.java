@@ -92,7 +92,7 @@ class OrderCreateServiceE2ETest {
     }
 
     @Test
-    void createOrder_withoutPointPayment_createsUnpaidOrderWithoutChangingBalance() {
+    void createOrder_withoutPointPaymentFlag_stillPaysWithPoints() {
         long userId = registerAchiever("77008880001", PRIMARY_POSTAL_CODE);
         setUserRewardState(userId, 250L, 180L, 0L);
 
@@ -105,12 +105,12 @@ class OrderCreateServiceE2ETest {
         OrderRow row = findOrderRow(orderId);
         assertEquals("MIXED", row.type());
         assertEquals("NEW", row.status());
-        assertEquals("UNPAID", row.paymentStatus());
-        assertEquals(null, row.paidAt());
+        assertEquals("PAID_WITH_POINTS", row.paymentStatus());
+        assertNotNull(row.paidAt());
         assertEquals(0L, countOrderFractions(orderId));
-        assertEquals(180L, findUserCurrentPoints(userId));
+        assertEquals(180L - row.costPoints(), findUserCurrentPoints(userId));
         assertEquals(250L, findUserTotalPoints(userId));
-        assertEquals(0L, countEvents(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
+        assertEquals(1L, countEvents(userId, UserActionEventType.ORDER_PAID_WITH_POINTS));
         assertEquals(1L, countEvents(userId, UserActionEventType.ORDER_CREATED));
     }
 
@@ -137,7 +137,7 @@ class OrderCreateServiceE2ETest {
     }
 
     @Test
-    void createOrder_withPointPayment_whenInsufficientBalance_throwsAndDoesNotCreateOrder() {
+    void createOrder_whenInsufficientBalance_throwsAndDoesNotCreateOrder() {
         long userId = registerAchiever("77008880003", PRIMARY_POSTAL_CODE);
         setUserRewardState(userId, 500L, 40L, 0L);
 
@@ -148,7 +148,7 @@ class OrderCreateServiceE2ETest {
                 IllegalStateException.class,
                 () -> orderCreateService.createOrder(
                         userId,
-                        new OrderCreateCommand("MIXED", regularSlot.key(), List.of(), true)
+                        new OrderCreateCommand("MIXED", regularSlot.key(), List.of(), false)
                 )
         );
 
@@ -530,4 +530,3 @@ class OrderCreateServiceE2ETest {
         }
     }
 }
-

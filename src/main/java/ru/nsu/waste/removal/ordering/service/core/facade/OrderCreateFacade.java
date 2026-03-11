@@ -79,7 +79,7 @@ public class OrderCreateFacade {
                         form.getType(),
                         form.getSlotKey(),
                         form.getFractionIds(),
-                        form.isPayWithPoints()
+                        true
                 )
         );
     }
@@ -156,9 +156,6 @@ public class OrderCreateFacade {
     }
 
     private void validatePointsPayment(OrderCreateForm form, BindingResult bindingResult, long userId) {
-        if (!form.isPayWithPoints()) {
-            return;
-        }
         long currentPoints = getCurrentPoints(userId);
         long fixedCostPoints = getFixedCostPoints();
         if (currentPoints < fixedCostPoints) {
@@ -203,4 +200,3 @@ public class OrderCreateFacade {
     ) {
     }
 }
-

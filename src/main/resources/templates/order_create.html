@@ -75,10 +75,7 @@
                 <h3>Внутренняя оплата</h3>
                 <p><strong>Текущий баланс:</strong> <span th:text="${currentPoints}">0</span> баллов</p>
                 <p><strong>Стоимость вывоза:</strong> <span th:text="${fixedCostPoints}">100</span> баллов</p>
-                <label class="option-item">
-                    <input th:field="*{payWithPoints}" type="checkbox">
-                    Оплатить заказ баллами
-                </label>
+                <p class="field-hint">Заявка оплачивается баллами автоматически.</p>
                 <p class="field-hint" th:if="${!enoughPointsForPayment}">
                     Недостаточно баллов для оплаты
                 </p>

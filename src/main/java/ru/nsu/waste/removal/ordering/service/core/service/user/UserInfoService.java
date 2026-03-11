@@ -18,10 +18,12 @@ public class UserInfoService {
     private final UserInfoRepository userInfoRepository;
     private final LevelRepository levelRepository;
     private final GeoClusterService geoClusterService;
+    private final UserRegistrationPointsService userRegistrationPointsService;
 
     @Transactional
     public long add(UserType userType, long addressId, long personId) {
-        long userId = userInfoRepository.addUserInfo(userType.getId(), addressId, personId);
+        long initialPoints = userRegistrationPointsService.getInitialPoints();
+        long userId = userInfoRepository.addUserInfo(userType.getId(), addressId, personId, initialPoints);
         if (userType == UserType.ACHIEVER) {
             Level firstLevel = levelRepository.findLowestLevel();
             userInfoRepository.addAchieverProfile(userId, firstLevel.id());

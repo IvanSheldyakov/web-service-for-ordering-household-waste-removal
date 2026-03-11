@@ -50,12 +50,9 @@ public class OrderCreateService {
         List<Long> fractionIds = normalizeFractions(command.fractionIds(), type);
         long costPoints = orderPricingService.getFixedCostPoints();
 
-        UserRewardState rewardStateForPayment = null;
-        OrderPaymentStatus paymentStatus = OrderPaymentStatus.UNPAID;
-        if (command.payWithPoints()) {
-            rewardStateForPayment = orderPaymentService.lockRewardStateForPointsPayment(userId, costPoints);
-            paymentStatus = OrderPaymentStatus.PAID_WITH_POINTS;
-        }
+        UserRewardState rewardStateForPayment =
+                orderPaymentService.lockRewardStateForPointsPayment(userId, costPoints);
+        OrderPaymentStatus paymentStatus = OrderPaymentStatus.PAID_WITH_POINTS;
 
         GeoClusterKey clusterKey = geoClusterService.getClusterKeyForOrderCreation(userId);
         OrderCreateParams orderCreateParams = orderCreateParamsMapper.toOrderCreateParams(
@@ -74,17 +71,15 @@ public class OrderCreateService {
 
         addOrderCreatedEvent(userId, orderKey, type, selectedSlot, fractionIds);
 
-        if (command.payWithPoints()) {
-            orderPaymentService.payForOrderWithPoints(
-                    userId,
-                    rewardStateForPayment,
-                    orderKey,
-                    type,
-                    selectedSlot,
-                    fractionIds,
-                    costPoints
-            );
-        }
+        orderPaymentService.payForOrderWithPoints(
+                userId,
+                rewardStateForPayment,
+                orderKey,
+                type,
+                selectedSlot,
+                fractionIds,
+                costPoints
+        );
 
         if (type == OrderType.SEPARATE) {
             addSuccessEvent(userId, UserActionEventType.SEPARATE_CHOSEN);
@@ -200,4 +195,3 @@ public class OrderCreateService {
     ) {
     }
 }
-

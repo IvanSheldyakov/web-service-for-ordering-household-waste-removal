@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,19 +50,15 @@ class OrderCreateFacadeTest {
     private OrderCreateFacade orderCreateFacade;
 
     @Test
-    void createOrder_passesPayWithPointsFlagToServiceCommand() {
+    void createOrder_forcesPointsPaymentInServiceCommand() {
         long userId = 42L;
         OrderCreateForm form = new OrderCreateForm();
         form.setType("MIXED");
         form.setSlotKey("2026-03-20T10:00:00+00:00|2026-03-20T12:00:00+00:00");
-        form.setPayWithPoints(true);
+        form.setPayWithPoints(false);
 
-        when(orderCreateService.createOrder(userId, new OrderCreateCommand(
-                form.getType(),
-                form.getSlotKey(),
-                form.getFractionIds(),
-                form.isPayWithPoints()
-        ))).thenReturn(101L);
+        when(orderCreateService.createOrder(org.mockito.ArgumentMatchers.eq(userId), any(OrderCreateCommand.class)))
+                .thenReturn(101L);
 
         orderCreateFacade.createOrder(userId, form);
 
@@ -81,7 +78,7 @@ class OrderCreateFacadeTest {
         OrderCreateForm form = new OrderCreateForm();
         form.setType("MIXED");
         form.setSlotKey(slot.key());
-        form.setPayWithPoints(true);
+        form.setPayWithPoints(false);
 
         when(greenSlotService.getSlotOptions(userId)).thenReturn(List.of(slot));
         when(userInfoService.getProfileByUserId(userId)).thenReturn(
@@ -108,4 +105,3 @@ class OrderCreateFacadeTest {
         assertTrue(orderCreateFacade.hasEnoughPointsForPayment(userId));
     }
 }
-

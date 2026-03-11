@@ -22,3 +22,5 @@ server:
 app:
   order:
     fixed-cost-points: 100
+  user:
+    initial-points: 1000
