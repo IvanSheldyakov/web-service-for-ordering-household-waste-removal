@@ -9,13 +9,13 @@
 <body>
 <div th:replace="~{fragments/layout :: header('Экологический дашборд')}"></div>
 <main class="app-shell">
-    <section class="card top-panel">
-        <div>
+    <section class="card top-panel motivation-hero">
+        <div class="hero-balance">
             <h2>Баланс</h2>
-            <p><strong>Текущий баланс:</strong> <span th:text="${dashboard.currentPoints}">0</span> баллов</p>
-            <p><strong>Всего накоплено:</strong> <span th:text="${dashboard.totalPoints}">0</span> баллов</p>
+            <p><strong>Текущий баланс:</strong> <span class="hero-metric" th:text="${dashboard.currentPoints}">0</span> баллов</p>
+            <p><strong>Всего накоплено:</strong> <span class="hero-metric" th:text="${dashboard.totalPoints}">0</span> баллов</p>
         </div>
-        <div>
+        <div class="hero-period">
             <p><strong>Период:</strong> <span th:text="${dashboard.period.title}">7 дней</span></p>
         </div>
     </section>
@@ -31,47 +31,47 @@
         </nav>
     </section>
 
-    <section class="card">
+    <section class="card motivation-zone">
         <h2>Статистика заказов</h2>
         <div class="stats-grid">
-            <article class="stat-card">
+            <article class="stat-card stat-card-primary">
                 <p class="stat-title">Выполнено заказов</p>
                 <p class="stat-value" th:text="${dashboard.orders.doneTotal}">0</p>
             </article>
-            <article class="stat-card">
+            <article class="stat-card stat-card-secondary">
                 <p class="stat-title">Раздельных выполнено</p>
                 <p class="stat-value" th:text="${dashboard.orders.doneSeparate}">0</p>
             </article>
-            <article class="stat-card">
+            <article class="stat-card stat-card-accent">
                 <p class="stat-title">Доля раздельных</p>
                 <p class="stat-value"><span th:text="${dashboard.orders.separateSharePercent}">0</span>%</p>
             </article>
         </div>
     </section>
 
-    <section class="card">
+    <section class="card motivation-zone">
         <h2>Фракции, которые вы сортируете</h2>
         <p th:if="${#lists.isEmpty(dashboard.fractions)}">
             Пока нет раздельных заказов — попробуйте оформить раздельный вывоз.
         </p>
-        <p th:unless="${#lists.isEmpty(dashboard.fractions)}"
+        <p class="fraction-highlight" th:unless="${#lists.isEmpty(dashboard.fractions)}"
            th:text="${#strings.listJoin(dashboard.fractions, ', ')}">
             Бумага, Пластик, Стекло
         </p>
     </section>
 
-    <section class="card" th:if="${!#lists.isEmpty(dashboard.insights)}">
+    <section class="card motivation-zone insights-zone" th:if="${!#lists.isEmpty(dashboard.insights)}">
         <h2>Инсайты</h2>
-        <ul class="insights-list">
+        <ul class="insights-list insights-list-strong">
             <li th:each="insight : ${dashboard.insights}" th:text="${insight}">
                 За период раздельных заказов: 0.
             </li>
         </ul>
     </section>
 
-    <section class="card" th:if="${dashboard.userType == 'ACHIEVER' and dashboard.achiever != null}">
+    <section class="card motivation-zone achiever-panel" th:if="${dashboard.userType == 'ACHIEVER' and dashboard.achiever != null}">
         <h2>Прогресс достигателя</h2>
-        <p><strong>Текущий уровень:</strong> <span th:text="${dashboard.achiever.levelId}">1</span></p>
+        <p><strong>Текущий уровень:</strong> <span class="level-pill" th:text="${dashboard.achiever.levelId}">1</span></p>
         <div class="progress">
             <div class="progress-bar" th:style="'width:' + ${dashboard.achiever.progressPercent} + '%'"> </div>
         </div>
