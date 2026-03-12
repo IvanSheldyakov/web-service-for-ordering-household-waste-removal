@@ -7,6 +7,9 @@ import org.springframework.stereotype.Repository;
 import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierOrderInfo;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
+import ru.nsu.waste.removal.ordering.service.core.repository.courier.param.MarkDoneParams;
+import ru.nsu.waste.removal.ordering.service.core.repository.courier.param.TakeOrderGroupParams;
+import ru.nsu.waste.removal.ordering.service.core.repository.courier.param.TakeOrderParams;
 
 import java.sql.Array;
 import java.time.OffsetDateTime;
@@ -205,21 +208,15 @@ public class CourierOrderRepository {
         );
     }
 
-    public boolean takeOrder(
-            long courierId,
-            long orderId,
-            OffsetDateTime orderCreatedAt,
-            String courierPostalCode,
-            OffsetDateTime assignedAt
-    ) {
+    public boolean takeOrder(TakeOrderParams params) {
         int updatedRows = namedParameterJdbcTemplate.update(
                 TAKE_ORDER_QUERY,
                 new MapSqlParameterSource()
-                        .addValue(ParameterNames.COURIER_ID, courierId)
-                        .addValue(ParameterNames.ORDER_ID, orderId)
-                        .addValue(ParameterNames.ORDER_CREATED_AT, orderCreatedAt)
-                        .addValue(ParameterNames.COURIER_POSTAL_CODE, courierPostalCode)
-                        .addValue(ParameterNames.ASSIGNED_AT, assignedAt)
+                        .addValue(ParameterNames.COURIER_ID, params.courierId())
+                        .addValue(ParameterNames.ORDER_ID, params.orderId())
+                        .addValue(ParameterNames.ORDER_CREATED_AT, params.orderCreatedAt())
+                        .addValue(ParameterNames.COURIER_POSTAL_CODE, params.courierPostalCode())
+                        .addValue(ParameterNames.ASSIGNED_AT, params.assignedAt())
         );
         return updatedRows == 1;
     }
@@ -239,37 +236,26 @@ public class CourierOrderRepository {
         ).stream().findFirst();
     }
 
-    public int takeOrderGroup(
-            long courierId,
-            String clusterKey,
-            OffsetDateTime pickupFrom,
-            OffsetDateTime pickupTo,
-            OffsetDateTime assignedAt
-    ) {
+    public int takeOrderGroup(TakeOrderGroupParams params) {
         return namedParameterJdbcTemplate.update(
                 TAKE_ORDER_GROUP_QUERY,
                 new MapSqlParameterSource()
-                        .addValue(ParameterNames.COURIER_ID, courierId)
-                        .addValue(ParameterNames.POSTAL_CODE, clusterKey)
-                        .addValue(ParameterNames.PICKUP_FROM, pickupFrom)
-                        .addValue(ParameterNames.PICKUP_TO, pickupTo)
-                        .addValue(ParameterNames.ASSIGNED_AT, assignedAt)
+                        .addValue(ParameterNames.COURIER_ID, params.courierId())
+                        .addValue(ParameterNames.POSTAL_CODE, params.clusterKey())
+                        .addValue(ParameterNames.PICKUP_FROM, params.pickupFrom())
+                        .addValue(ParameterNames.PICKUP_TO, params.pickupTo())
+                        .addValue(ParameterNames.ASSIGNED_AT, params.assignedAt())
         );
     }
 
-    public boolean markDone(
-            long courierId,
-            long orderId,
-            OffsetDateTime orderCreatedAt,
-            OffsetDateTime completedAt
-    ) {
+    public boolean markDone(MarkDoneParams params) {
         int updatedRows = namedParameterJdbcTemplate.update(
                 MARK_DONE_QUERY,
                 new MapSqlParameterSource()
-                        .addValue(ParameterNames.COURIER_ID, courierId)
-                        .addValue(ParameterNames.ORDER_ID, orderId)
-                        .addValue(ParameterNames.ORDER_CREATED_AT, orderCreatedAt)
-                        .addValue(ParameterNames.COMPLETED_AT, completedAt)
+                        .addValue(ParameterNames.COURIER_ID, params.courierId())
+                        .addValue(ParameterNames.ORDER_ID, params.orderId())
+                        .addValue(ParameterNames.ORDER_CREATED_AT, params.orderCreatedAt())
+                        .addValue(ParameterNames.COMPLETED_AT, params.completedAt())
         );
         return updatedRows == 1;
     }

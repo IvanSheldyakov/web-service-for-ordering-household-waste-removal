@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.mapper.history.UserActionHistoryParamsMapper;
+import ru.nsu.waste.removal.ordering.service.core.mapper.order.OrderFlowParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.cluster.GeoClusterKey;
 import ru.nsu.waste.removal.ordering.service.core.model.event.OrderCreatedEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
@@ -19,6 +21,7 @@ import ru.nsu.waste.removal.ordering.service.core.repository.order.OrderCreateRe
 import ru.nsu.waste.removal.ordering.service.core.repository.order.WasteFractionRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.cluster.GeoClusterService;
 import ru.nsu.waste.removal.ordering.service.core.service.order.mapper.OrderCreateParamsMapper;
+import ru.nsu.waste.removal.ordering.service.core.service.order.param.OrderCreatedEventParams;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -41,6 +44,8 @@ public class OrderCreateService {
     private final OrderPricingService orderPricingService;
     private final OrderPaymentService orderPaymentService;
     private final UserActionHistoryRepository userActionHistoryRepository;
+    private final OrderFlowParamsMapper orderFlowParamsMapper;
+    private final UserActionHistoryParamsMapper userActionHistoryParamsMapper;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -69,9 +74,11 @@ public class OrderCreateService {
             orderCreateRepository.addFractions(orderKey, fractionIds);
         }
 
-        addOrderCreatedEvent(userId, orderKey, type, selectedSlot, fractionIds);
+        addOrderCreatedEvent(
+                orderFlowParamsMapper.mapToOrderCreatedEventParams(userId, orderKey, type, selectedSlot, fractionIds)
+        );
 
-        orderPaymentService.payForOrderWithPoints(
+        orderPaymentService.payForOrderWithPoints(orderFlowParamsMapper.mapToPayForOrderWithPointsParams(
                 userId,
                 rewardStateForPayment,
                 orderKey,
@@ -79,7 +86,7 @@ public class OrderCreateService {
                 selectedSlot,
                 fractionIds,
                 costPoints
-        );
+        ));
 
         if (type == OrderType.SEPARATE) {
             addSuccessEvent(userId, UserActionEventType.SEPARATE_CHOSEN);
@@ -148,37 +155,31 @@ public class OrderCreateService {
                 && slot.pickupTo().toInstant().equals(slotBounds.pickupTo().toInstant());
     }
 
-    private void addOrderCreatedEvent(
-            long userId,
-            OrderKey orderKey,
-            OrderType type,
-            SlotOption slot,
-            List<Long> fractionIds
-    ) {
+    private void addOrderCreatedEvent(OrderCreatedEventParams params) {
         OrderCreatedEventContent content = new OrderCreatedEventContent(
-                orderKey.id(),
-                type.dbName(),
-                slot.pickupFrom().toString(),
-                slot.pickupTo().toString(),
-                slot.green(),
-                fractionIds
+                params.orderKey().id(),
+                params.type().dbName(),
+                params.slot().pickupFrom().toString(),
+                params.slot().pickupTo().toString(),
+                params.slot().green(),
+                params.fractionIds()
         );
 
-        userActionHistoryRepository.addEvent(
-                userId,
+        userActionHistoryRepository.addEvent(userActionHistoryParamsMapper.mapToAddEventParams(
+                params.userId(),
                 UserActionEventType.ORDER_CREATED.dbName(),
                 toJson(content),
                 ZERO_POINTS_DIFFERENCE
-        );
+        ));
     }
 
     private void addSuccessEvent(long userId, UserActionEventType eventType) {
-        userActionHistoryRepository.addEvent(
+        userActionHistoryRepository.addEvent(userActionHistoryParamsMapper.mapToAddEventParams(
                 userId,
                 eventType.dbName(),
                 toJson(Map.of("success", true)),
                 ZERO_POINTS_DIFFERENCE
-        );
+        ));
     }
 
     private String toJson(Object value) {

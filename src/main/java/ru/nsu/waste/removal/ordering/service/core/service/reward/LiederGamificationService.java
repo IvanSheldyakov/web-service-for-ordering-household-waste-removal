@@ -7,6 +7,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.mapper.reward.RewardParamsMapper;
+import ru.nsu.waste.removal.ordering.service.core.mapper.user.UserInfoParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.event.LiederRewardEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.LiederRewardRequestEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
@@ -15,6 +17,7 @@ import ru.nsu.waste.removal.ordering.service.core.model.user.UserRewardState;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventHandler;
+import ru.nsu.waste.removal.ordering.service.core.service.reward.param.RewardContentParams;
 
 @Service
 @Order(15)
@@ -31,6 +34,8 @@ public class LiederGamificationService implements UserActionEventHandler {
 
     private final UserInfoRepository userInfoRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
+    private final UserInfoParamsMapper userInfoParamsMapper;
+    private final RewardParamsMapper rewardParamsMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -70,16 +75,21 @@ public class LiederGamificationService implements UserActionEventHandler {
         }
 
         long newHabitStrength = toDbStrength(step.newStrength());
-        userInfoRepository.updateRewardState(event.userId(), newTotalPoints, newCurrentPoints, newHabitStrength);
+        userInfoRepository.updateRewardState(userInfoParamsMapper.mapToUpdateRewardStateParams(
+                event.userId(),
+                newTotalPoints,
+                newCurrentPoints,
+                newHabitStrength
+        ));
 
-        String rewardContentJson = buildRewardContentJson(
+        String rewardContentJson = buildRewardContentJson(rewardParamsMapper.mapToRewardContentParams(
                 success,
                 oldStrength,
                 step.newStrength(),
                 step.fValue(),
                 calculatedDelta,
                 appliedDelta
-        );
+        ));
 
         userActionHistoryRepository.updateEventRewardById(
                 event.id(),
@@ -114,25 +124,18 @@ public class LiederGamificationService implements UserActionEventHandler {
         return result;
     }
 
-    private String buildRewardContentJson(
-            boolean success,
-            double oldStrength,
-            double newStrength,
-            double fValue,
-            long calculatedDelta,
-            long appliedDelta
-    ) {
+    private String buildRewardContentJson(RewardContentParams params) {
         LiederRewardEventContent content = new LiederRewardEventContent(
                 "LIEDER_OPTIMIZED",
                 DEFAULT_ALPHA,
                 DEFAULT_THETA,
                 DEFAULT_MAX_POINTS,
-                success,
-                oldStrength,
-                newStrength,
-                fValue,
-                calculatedDelta,
-                appliedDelta
+                params.success(),
+                params.oldStrength(),
+                params.newStrength(),
+                params.fValue(),
+                params.calculatedDelta(),
+                params.appliedDelta()
         );
 
         try {

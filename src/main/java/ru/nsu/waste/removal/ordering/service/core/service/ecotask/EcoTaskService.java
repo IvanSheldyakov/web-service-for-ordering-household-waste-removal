@@ -7,6 +7,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.mapper.ecotask.EcoTaskParamsMapper;
+import ru.nsu.waste.removal.ordering.service.core.mapper.history.UserActionHistoryParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.ActiveEcoTaskAssignment;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.AssignedEcoTask;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.EcoTask;
@@ -41,6 +43,8 @@ public class EcoTaskService implements UserActionEventHandler {
     private final EcoTaskRepository ecoTaskRepository;
     private final UserEcoTaskRepository userEcoTaskRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
+    private final EcoTaskParamsMapper ecoTaskParamsMapper;
+    private final UserActionHistoryParamsMapper userActionHistoryParamsMapper;
     private final OrderInfoService orderInfoService;
     private final ObjectMapper objectMapper;
     private final Clock applicationClock;
@@ -54,7 +58,9 @@ public class EcoTaskService implements UserActionEventHandler {
                 continue;
             }
             OffsetDateTime expiredAt = calculateExpiredAt(task.period(), zoneId);
-            userEcoTaskRepository.addAssigned(userId, task.id(), assignedAt, expiredAt);
+            userEcoTaskRepository.addAssigned(
+                    ecoTaskParamsMapper.mapToAddAssignedParams(userId, task.id(), assignedAt, expiredAt)
+            );
         }
     }
 
@@ -88,12 +94,12 @@ public class EcoTaskService implements UserActionEventHandler {
                 continue;
             }
 
-            userActionHistoryRepository.addEvent(
+            userActionHistoryRepository.addEvent(userActionHistoryParamsMapper.mapToAddEventParams(
                     event.userId(),
                     UserActionEventType.ECO_TASK_COMPLETED.dbName(),
                     buildCompletedContentJson(assignment),
                     assignment.points()
-            );
+            ));
         }
     }
 
@@ -136,10 +142,12 @@ public class EcoTaskService implements UserActionEventHandler {
                     buildOrderFiltersInPeriod(userId, assignment)
             ) >= assignment.target();
             case ACTION_COUNT -> userActionHistoryRepository.countByUserIdAndEventTypeInPeriod(
-                    userId,
-                    resolveActionCountEventType(assignment, triggerEvent).dbName(),
-                    assignment.assignedAt(),
-                    assignment.expiredAt()
+                    userActionHistoryParamsMapper.mapToCountByUserIdAndEventTypeInPeriodParams(
+                            userId,
+                            resolveActionCountEventType(assignment, triggerEvent).dbName(),
+                            assignment.assignedAt(),
+                            assignment.expiredAt()
+                    )
             ) >= assignment.target();
         };
     }

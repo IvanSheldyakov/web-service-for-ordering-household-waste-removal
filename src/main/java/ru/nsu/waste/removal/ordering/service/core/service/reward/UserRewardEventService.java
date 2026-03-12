@@ -5,6 +5,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.mapper.user.UserInfoParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryEvent;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserRewardState;
@@ -17,6 +18,7 @@ import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventH
 public class UserRewardEventService implements UserActionEventHandler {
 
     private final UserInfoRepository userInfoRepository;
+    private final UserInfoParamsMapper userInfoParamsMapper;
 
     @Override
     public boolean supports(UserActionHistoryEvent event) {
@@ -34,12 +36,12 @@ public class UserRewardEventService implements UserActionEventHandler {
         long newTotalPoints = safeAdd(rewardState.totalPoints(), event.pointsDifference());
         long newCurrentPoints = safeAdd(rewardState.currentPoints(), event.pointsDifference());
 
-        userInfoRepository.updateRewardState(
+        userInfoRepository.updateRewardState(userInfoParamsMapper.mapToUpdateRewardStateParams(
                 event.userId(),
                 newTotalPoints,
                 newCurrentPoints,
                 rewardState.habitStrength()
-        );
+        ));
     }
 
     private static long safeAdd(long a, long b) {

@@ -6,6 +6,7 @@ import ru.nsu.waste.removal.ordering.service.core.model.cluster.GeoClusterContex
 import ru.nsu.waste.removal.ordering.service.core.model.cluster.GeoClusterKey;
 import ru.nsu.waste.removal.ordering.service.core.model.order.GreenSlot;
 import ru.nsu.waste.removal.ordering.service.core.repository.cluster.GeoClusterRepository;
+import ru.nsu.waste.removal.ordering.service.core.repository.cluster.param.FindPlannedSlotsInClusterParams;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -39,12 +40,9 @@ public class GeoClusterService {
     }
 
     public List<GreenSlot> findPlannedSlotsInCluster(
-            long excludedUserId,
-            GeoClusterKey clusterKey,
-            OffsetDateTime from,
-            OffsetDateTime to
+            FindPlannedSlotsInClusterParams params
     ) {
-        return geoClusterRepository.findPlannedSlotsInCluster(excludedUserId, clusterKey, from, to);
+        return geoClusterRepository.findPlannedSlotsInCluster(params);
     }
 
     public long countActiveOrdersInCluster(

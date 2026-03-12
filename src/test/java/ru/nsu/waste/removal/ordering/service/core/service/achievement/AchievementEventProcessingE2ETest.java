@@ -19,6 +19,7 @@ import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserRegistrationResult;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
+import ru.nsu.waste.removal.ordering.service.core.repository.history.param.AddEventParams;
 import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventProcessorService;
 import ru.nsu.waste.removal.ordering.service.core.service.registration.RegistrationService;
 
@@ -164,12 +165,12 @@ class AchievementEventProcessingE2ETest {
 
     private void addOrderDoneEvents(long userId, int count) {
         for (int i = 0; i < count; i++) {
-            userActionHistoryRepository.addEvent(
+            userActionHistoryRepository.addEvent(new AddEventParams(
                     userId,
                     UserActionEventType.ORDER_DONE.dbName(),
                     "{}",
                     0
-            );
+            ));
         }
     }
 

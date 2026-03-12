@@ -9,13 +9,13 @@
 <body>
 <div th:replace="~{fragments/layout :: header('Главная страница пользователя')}"></div>
 <main class="app-shell">
-    <section class="card top-panel">
-        <div>
+    <section class="card top-panel motivation-hero">
+        <div class="hero-balance">
             <h2>Баланс</h2>
-            <p><strong>Текущий баланс:</strong> <span th:text="${home.currentPoints}">0</span> баллов</p>
-            <p><strong>Всего накоплено:</strong> <span th:text="${home.totalPoints}">0</span> баллов</p>
+            <p><strong>Текущий баланс:</strong> <span class="hero-metric" th:text="${home.currentPoints}">0</span> баллов</p>
+            <p><strong>Всего накоплено:</strong> <span class="hero-metric" th:text="${home.totalPoints}">0</span> баллов</p>
         </div>
-        <a class="button-link" th:href="@{/user/{userId}/order/create(userId=${home.userId})}">Создать заявку на вывоз</a>
+        <a class="button-link cta-link" th:href="@{/user/{userId}/order/create(userId=${home.userId})}">Создать заявку на вывоз</a>
     </section>
 
     <section class="card">
@@ -47,11 +47,11 @@
         </div>
     </section>
 
-    <section class="card">
+    <section class="card motivation-zone">
         <h2>Мотивационный блок</h2>
 
-        <div th:if="${home.userType == 'ACHIEVER' and home.motivation.achiever != null}">
-            <p><strong>Текущий уровень:</strong> <span th:text="${home.motivation.achiever.levelId}">1</span></p>
+        <div class="motivation-spot achiever-spot" th:if="${home.userType == 'ACHIEVER' and home.motivation.achiever != null}">
+            <p><strong>Текущий уровень:</strong> <span class="level-pill" th:text="${home.motivation.achiever.levelId}">1</span></p>
             <div class="progress">
                 <div class="progress-bar" th:style="'width:' + ${home.motivation.achiever.progressPercent} + '%'"> </div>
             </div>
@@ -63,18 +63,18 @@
             </p>
         </div>
 
-        <div th:if="${home.userType == 'SOCIALIZER' and home.motivation.socializer != null}">
+        <div class="motivation-spot socializer-spot" th:if="${home.userType == 'SOCIALIZER' and home.motivation.socializer != null}">
             <p>
                 Ваше место в рейтинге района за 7 дней:
-                <strong th:text="${home.motivation.socializer.weeklyRankPosition != null ? '#' + home.motivation.socializer.weeklyRankPosition : '—'}">—</strong>
+                <strong class="rank-badge" th:text="${home.motivation.socializer.weeklyRankPosition != null ? '#' + home.motivation.socializer.weeklyRankPosition : '—'}">—</strong>
             </p>
         </div>
 
-        <div th:if="${home.userType == 'EXPLORER' and home.motivation.explorer != null}">
+        <div class="motivation-spot explorer-spot" th:if="${home.userType == 'EXPLORER' and home.motivation.explorer != null}">
             <p>Подборка карточек для вас:</p>
             <p th:if="${#lists.isEmpty(home.motivation.explorer.cards)}">Карточки пока недоступны</p>
-            <div class="card-grid" th:unless="${#lists.isEmpty(home.motivation.explorer.cards)}">
-                <article class="info-card" th:each="card : ${home.motivation.explorer.cards}">
+            <div class="card-grid motivation-cards" th:unless="${#lists.isEmpty(home.motivation.explorer.cards)}">
+                <article class="info-card motivation-card" th:each="card : ${home.motivation.explorer.cards}">
                     <h3 th:text="${card.title}">Заголовок</h3>
                     <p th:text="${card.description}">Описание</p>
                 </article>
@@ -92,4 +92,3 @@
 </main>
 </body>
 </html>
-

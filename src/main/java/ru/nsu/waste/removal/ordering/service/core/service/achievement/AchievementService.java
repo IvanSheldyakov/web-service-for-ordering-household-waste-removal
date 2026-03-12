@@ -7,6 +7,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.mapper.history.UserActionHistoryParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.achievement.Achievement;
 import ru.nsu.waste.removal.ordering.service.core.model.achievement.AchievementCode;
 import ru.nsu.waste.removal.ordering.service.core.model.achievement.AchievementRule;
@@ -42,6 +43,7 @@ public class AchievementService implements UserActionEventHandler {
     private final AchievementRepository achievementRepository;
     private final AchievementUserRepository achievementUserRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
+    private final UserActionHistoryParamsMapper userActionHistoryParamsMapper;
     private final UserInfoRepository userInfoRepository;
     private final UserLeaderboardRepository userLeaderboardRepository;
     private final OrderInfoService orderInfoService;
@@ -80,12 +82,12 @@ public class AchievementService implements UserActionEventHandler {
             }
 
             if (achievementUserRepository.unlockForUser(userId, candidate.id())) {
-                userActionHistoryRepository.addEvent(
+                userActionHistoryRepository.addEvent(userActionHistoryParamsMapper.mapToAddEventParams(
                         userId,
                         UserActionEventType.ACHIEVEMENT_UNLOCKED.dbName(),
                         buildUnlockedContentJson(candidate),
                         0
-                );
+                ));
             }
         }
     }

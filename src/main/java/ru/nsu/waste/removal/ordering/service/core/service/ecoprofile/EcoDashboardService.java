@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.nsu.waste.removal.ordering.service.core.mapper.ecoprofile.EcoDashboardParamsMapper;
+import ru.nsu.waste.removal.ordering.service.core.mapper.history.UserActionHistoryParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.EcoDashboard;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.EcoDashboardPeriod;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
@@ -15,6 +17,8 @@ import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionH
 import ru.nsu.waste.removal.ordering.service.core.repository.level.LevelRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.AchieverProfileRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.order.OrderInfoService;
+import ru.nsu.waste.removal.ordering.service.core.service.ecoprofile.param.BuildDoneFiltersParams;
+import ru.nsu.waste.removal.ordering.service.core.service.ecoprofile.param.BuildInsightsParams;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
 
 import java.time.Clock;
@@ -68,6 +72,8 @@ public class EcoDashboardService {
     private final AchieverProfileRepository achieverProfileRepository;
     private final LevelRepository levelRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
+    private final EcoDashboardParamsMapper ecoDashboardParamsMapper;
+    private final UserActionHistoryParamsMapper userActionHistoryParamsMapper;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -77,7 +83,9 @@ public class EcoDashboardService {
 
         EcoDashboard.OrdersStats currentStats = buildCurrentStats(userId, period, now);
         List<String> fractions = buildFractions(userId, period, now);
-        List<String> insights = buildInsights(userId, period, now, currentStats);
+        List<String> insights = buildInsights(
+                ecoDashboardParamsMapper.mapToBuildInsightsParams(userId, period, now, currentStats)
+        );
         EcoDashboard.AchieverProgress achiever =
                 buildAchieverProgress(userId, profile.userType(), profile.totalPoints());
 
@@ -114,10 +122,10 @@ public class EcoDashboardService {
 
         OffsetDateTime from = now.minusDays(period.lengthDays());
         long doneTotal = orderInfoService.countOrdersByFiltersInPeriod(
-                buildDoneFilters(userId, from, now, null)
+                buildDoneFilters(ecoDashboardParamsMapper.mapToBuildDoneFiltersParams(userId, from, now, null))
         );
         long doneSeparate = orderInfoService.countOrdersByFiltersInPeriod(
-                buildDoneFilters(userId, from, now, "SEPARATE")
+                buildDoneFilters(ecoDashboardParamsMapper.mapToBuildDoneFiltersParams(userId, from, now, "SEPARATE"))
         );
 
         return new EcoDashboard.OrdersStats(
@@ -130,39 +138,49 @@ public class EcoDashboardService {
     private List<String> buildFractions(long userId, EcoDashboardPeriod period, OffsetDateTime now) {
         if (period == EcoDashboardPeriod.ALL) {
             return orderInfoService.findDistinctFractionNamesByFiltersInPeriod(
-                    buildDoneFilters(userId, ALL_PERIOD_START, now, "SEPARATE")
+                    buildDoneFilters(ecoDashboardParamsMapper.mapToBuildDoneFiltersParams(
+                            userId,
+                            ALL_PERIOD_START,
+                            now,
+                            "SEPARATE"
+                    ))
             );
         }
 
         OffsetDateTime from = now.minusDays(period.lengthDays());
         return orderInfoService.findDistinctFractionNamesByFiltersInPeriod(
-                buildDoneFilters(userId, from, now, "SEPARATE")
+                buildDoneFilters(ecoDashboardParamsMapper.mapToBuildDoneFiltersParams(userId, from, now, "SEPARATE"))
         );
     }
 
-    private List<String> buildInsights(
-            long userId,
-            EcoDashboardPeriod period,
-            OffsetDateTime now,
-            EcoDashboard.OrdersStats currentStats
-    ) {
-        if (period == EcoDashboardPeriod.ALL) {
-            return buildAllTimeInsights(currentStats);
+    private List<String> buildInsights(BuildInsightsParams params) {
+        if (params.period() == EcoDashboardPeriod.ALL) {
+            return buildAllTimeInsights(params.currentStats());
         }
 
-        OffsetDateTime currentFrom = now.minusDays(period.lengthDays());
-        OffsetDateTime prevFrom = currentFrom.minusDays(period.lengthDays());
+        OffsetDateTime currentFrom = params.now().minusDays(params.period().lengthDays());
+        OffsetDateTime prevFrom = currentFrom.minusDays(params.period().lengthDays());
         OffsetDateTime prevTo = currentFrom.minusNanos(1L);
 
         long prevDoneTotal = orderInfoService.countOrdersByFiltersInPeriod(
-                buildDoneFilters(userId, prevFrom, prevTo, null)
+                buildDoneFilters(ecoDashboardParamsMapper.mapToBuildDoneFiltersParams(
+                        params.userId(),
+                        prevFrom,
+                        prevTo,
+                        null
+                ))
         );
         long prevDoneSeparate = orderInfoService.countOrdersByFiltersInPeriod(
-                buildDoneFilters(userId, prevFrom, prevTo, "SEPARATE")
+                buildDoneFilters(ecoDashboardParamsMapper.mapToBuildDoneFiltersParams(
+                        params.userId(),
+                        prevFrom,
+                        prevTo,
+                        "SEPARATE"
+                ))
         );
         int prevSharePercent = calculateSharePercent(prevDoneSeparate, prevDoneTotal);
 
-        return buildPeriodInsights(currentStats, prevDoneSeparate, prevSharePercent);
+        return buildPeriodInsights(params.currentStats(), prevDoneSeparate, prevSharePercent);
     }
 
     private List<String> buildAllTimeInsights(EcoDashboard.OrdersStats currentStats) {
@@ -284,12 +302,12 @@ public class EcoDashboardService {
     }
 
     private void addEcoProfileOpenedEvent(long userId, EcoDashboardPeriod period) {
-        userActionHistoryRepository.addEvent(
+        userActionHistoryRepository.addEvent(userActionHistoryParamsMapper.mapToAddEventParams(
                 userId,
                 UserActionEventType.ECO_PROFILE_OPENED.dbName(),
                 toJson(Map.of("period", period.name())),
                 ZERO_POINTS_DIFFERENCE
-        );
+        ));
     }
 
     private int calculateSharePercent(long separateDone, long doneTotal) {
@@ -318,18 +336,13 @@ public class EcoDashboardService {
     }
 
     // TODO: switch dashboard period filtering from created_at to completed_at when completion flow is implemented.
-    private OrderFiltersInPeriod buildDoneFilters(
-            long userId,
-            OffsetDateTime from,
-            OffsetDateTime to,
-            String type
-    ) {
+    private OrderFiltersInPeriod buildDoneFilters(BuildDoneFiltersParams params) {
         return new OrderFiltersInPeriod(
-                userId,
-                from,
-                to,
+                params.userId(),
+                params.from(),
+                params.to(),
                 "DONE",
-                type,
+                params.type(),
                 null
         );
     }

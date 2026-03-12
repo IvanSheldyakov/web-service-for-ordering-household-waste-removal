@@ -7,16 +7,20 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.mapper.history.UserActionHistoryParamsMapper;
+import ru.nsu.waste.removal.ordering.service.core.mapper.level.LevelParamsMapper;
+import ru.nsu.waste.removal.ordering.service.core.model.event.LevelUpEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryEvent;
 import ru.nsu.waste.removal.ordering.service.core.model.level.AchieverLevelTarget;
 import ru.nsu.waste.removal.ordering.service.core.model.level.Level;
-import ru.nsu.waste.removal.ordering.service.core.model.event.LevelUpEventContent;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.level.LevelRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.AchieverProfileRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
 import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventHandler;
+import ru.nsu.waste.removal.ordering.service.core.service.level.param.EmitMaxLevelReachedEventParams;
+import ru.nsu.waste.removal.ordering.service.core.service.level.param.LevelUpContentParams;
 
 import java.util.Optional;
 
@@ -29,6 +33,8 @@ public class LevelService implements UserActionEventHandler {
     private final LevelRepository levelRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
     private final UserInfoRepository userInfoRepository;
+    private final LevelParamsMapper levelParamsMapper;
+    private final UserActionHistoryParamsMapper userActionHistoryParamsMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -76,56 +82,57 @@ public class LevelService implements UserActionEventHandler {
             }
 
             achieverProfileRepository.updateLevel(userId, desired.id());
-            userActionHistoryRepository.addEvent(
+            userActionHistoryRepository.addEvent(userActionHistoryParamsMapper.mapToAddEventParams(
                     userId,
                     UserActionEventType.LEVEL_UP.dbName(),
-                    buildContentJson(current, desired, oldTotalPoints, newTotalPoints, false),
+                    buildContentJson(levelParamsMapper.mapToLevelUpContentParams(
+                            current,
+                            desired,
+                            oldTotalPoints,
+                            newTotalPoints,
+                            false
+                    )),
                     0
-            );
+            ));
             return;
         }
 
-        // Особый случай: пользователь достиг максимального порога, но "следующей цели" уже нет.
-        // Чтобы не спамить событиями, эмитим LEVEL_UP только в момент пересечения порога.
-        emitMaxLevelReachedEventIfNeeded(userId, current, oldTotalPoints, newTotalPoints);
+        emitMaxLevelReachedEventIfNeeded(
+                levelParamsMapper.mapToEmitMaxLevelReachedEventParams(userId, current, oldTotalPoints, newTotalPoints)
+        );
     }
 
-    private void emitMaxLevelReachedEventIfNeeded(
-            long userId,
-            Level current,
-            long oldTotalPoints,
-            long newTotalPoints
-    ) {
+    private void emitMaxLevelReachedEventIfNeeded(EmitMaxLevelReachedEventParams params) {
         Level highest = levelRepository.findHighestLevel();
-        boolean isHighestTarget = current.id() == highest.id();
-        boolean crossedMaxThreshold = oldTotalPoints < current.requiredTotalPoints()
-                && newTotalPoints >= current.requiredTotalPoints();
+        boolean isHighestTarget = params.current().id() == highest.id();
+        boolean crossedMaxThreshold = params.oldTotalPoints() < params.current().requiredTotalPoints()
+                && params.newTotalPoints() >= params.current().requiredTotalPoints();
 
         if (isHighestTarget && crossedMaxThreshold) {
-            userActionHistoryRepository.addEvent(
-                    userId,
+            userActionHistoryRepository.addEvent(userActionHistoryParamsMapper.mapToAddEventParams(
+                    params.userId(),
                     UserActionEventType.LEVEL_UP.dbName(),
-                    buildContentJson(current, current, oldTotalPoints, newTotalPoints, true),
+                    buildContentJson(levelParamsMapper.mapToLevelUpContentParams(
+                            params.current(),
+                            params.current(),
+                            params.oldTotalPoints(),
+                            params.newTotalPoints(),
+                            true
+                    )),
                     0
-            );
+            ));
         }
     }
 
-    private String buildContentJson(
-            Level from,
-            Level to,
-            long oldTotalPoints,
-            long newTotalPoints,
-            boolean maxReached
-    ) {
+    private String buildContentJson(LevelUpContentParams params) {
         LevelUpEventContent content = new LevelUpEventContent(
-                from.id(),
-                to.id(),
-                from.requiredTotalPoints(),
-                to.requiredTotalPoints(),
-                oldTotalPoints,
-                newTotalPoints,
-                maxReached
+                params.from().id(),
+                params.to().id(),
+                params.from().requiredTotalPoints(),
+                params.to().requiredTotalPoints(),
+                params.oldTotalPoints(),
+                params.newTotalPoints(),
+                params.maxReached()
         );
 
         try {
@@ -134,5 +141,4 @@ public class LevelService implements UserActionEventHandler {
             throw new IllegalStateException("Failed to serialize level up content", exception);
         }
     }
-
 }

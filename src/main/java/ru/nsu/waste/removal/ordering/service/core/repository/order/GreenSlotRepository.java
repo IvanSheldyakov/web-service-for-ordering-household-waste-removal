@@ -2,11 +2,10 @@ package ru.nsu.waste.removal.ordering.service.core.repository.order;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
-import ru.nsu.waste.removal.ordering.service.core.model.cluster.GeoClusterKey;
 import ru.nsu.waste.removal.ordering.service.core.model.order.GreenSlot;
+import ru.nsu.waste.removal.ordering.service.core.mapper.cluster.ClusterParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.repository.cluster.GeoClusterRepository;
-
-import java.time.OffsetDateTime;
+import ru.nsu.waste.removal.ordering.service.core.repository.order.param.FindPlannedSlotsInPeriodParams;
 import java.util.List;
 
 @Repository
@@ -14,18 +13,11 @@ import java.util.List;
 public class GreenSlotRepository {
 
     private final GeoClusterRepository geoClusterRepository;
+    private final ClusterParamsMapper clusterParamsMapper;
 
-    public List<GreenSlot> findPlannedSlotsInPeriod(
-            long userId,
-            String postalCode,
-            OffsetDateTime from,
-            OffsetDateTime to
-    ) {
+    public List<GreenSlot> findPlannedSlotsInPeriod(FindPlannedSlotsInPeriodParams params) {
         return geoClusterRepository.findPlannedSlotsInCluster(
-                userId,
-                new GeoClusterKey(postalCode),
-                from,
-                to
+                clusterParamsMapper.mapToFindPlannedSlotsInClusterParams(params)
         );
     }
 }

@@ -9,8 +9,9 @@
 <body>
 <div th:replace="~{fragments/layout :: header('Создание заявки на вывоз')}"></div>
 <main class="app-shell">
-    <section class="card">
-        <h2>Новая заявка</h2>
+    <section class="card order-craft">
+        <h2 class="section-display">Новая заявка</h2>
+        <p class="section-subtitle">Соберите параметры вывоза как конструктор. Чем точнее выбор, тем быстрее и экологичнее маршрут.</p>
 
         <form class="order-create-form"
               method="post"
@@ -21,7 +22,7 @@
             </div>
 
             <div class="field-group">
-                <h3>Тип вывоза</h3>
+                <h3 class="field-title"><span class="title-index">01</span>Тип вывоза</h3>
                 <div class="form-row">
                     <label class="option-item">
                         <input th:field="*{type}" type="radio" value="MIXED">
@@ -36,7 +37,7 @@
             </div>
 
             <div class="field-group" id="fractionsSection">
-                <h3>Фракции</h3>
+                <h3 class="field-title"><span class="title-index">02</span>Фракции</h3>
                 <p class="field-hint">Для раздельного вывоза выберите хотя бы одну фракцию.</p>
                 <div class="fraction-grid">
                     <label class="option-item"
@@ -55,7 +56,7 @@
             </div>
 
             <div class="field-group">
-                <h3>Время вывоза</h3>
+                <h3 class="field-title"><span class="title-index">03</span>Время вывоза</h3>
                 <p class="field-hint">Показаны только доступные интервалы на сегодня и завтра.</p>
 
                 <p th:if="${#lists.isEmpty(slotOptions)}">Сейчас нет доступных интервалов. Попробуйте позже.</p>
@@ -71,10 +72,12 @@
                 <p class="error-text" th:errors="*{slotKey}" th:if="${#fields.hasErrors('slotKey')}">Ошибка выбора слота</p>
             </div>
 
-            <div class="field-group">
-                <h3>Внутренняя оплата</h3>
-                <p><strong>Текущий баланс:</strong> <span th:text="${currentPoints}">0</span> баллов</p>
-                <p><strong>Стоимость вывоза:</strong> <span th:text="${fixedCostPoints}">100</span> баллов</p>
+            <div class="field-group payment-zone">
+                <h3 class="field-title"><span class="title-index">04</span>Внутренняя оплата</h3>
+                <div class="payment-metrics">
+                    <p class="metric-line"><span class="metric-label">Текущий баланс</span><span class="metric-value" th:text="${currentPoints}">0</span> баллов</p>
+                    <p class="metric-line"><span class="metric-label">Стоимость вывоза</span><span class="metric-value" th:text="${fixedCostPoints}">100</span> баллов</p>
+                </div>
                 <p class="field-hint">Заявка оплачивается баллами автоматически.</p>
                 <p class="field-hint" th:if="${!enoughPointsForPayment}">
                     Недостаточно баллов для оплаты
@@ -86,9 +89,9 @@
                 </p>
             </div>
 
-            <div class="form-row">
-                <button class="primary-button" type="submit">Создать заявку</button>
-                <a th:href="@{/user/{userId}/home(userId=${userId})}">Вернуться на главную</a>
+            <div class="form-row action-row">
+                <button class="primary-button" th:disabled="${!enoughPointsForPayment}" type="submit">Создать заявку</button>
+                <a class="subtle-link" th:href="@{/user/{userId}/home(userId=${userId})}">Вернуться на главную</a>
             </div>
         </form>
     </section>

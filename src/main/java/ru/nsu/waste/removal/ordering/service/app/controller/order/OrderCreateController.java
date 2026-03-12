@@ -1,9 +1,9 @@
 package ru.nsu.waste.removal.ordering.service.app.controller.order;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -33,10 +33,10 @@ public class OrderCreateController {
     @PostMapping(Paths.USER_ORDER_CREATE)
     public String createOrder(
             @PathVariable(Paths.USER_ID) long userId,
-            @Valid @ModelAttribute(AttributeNames.ORDER_CREATE_FORM) OrderCreateForm form,
-            BindingResult bindingResult,
+            @ModelAttribute(AttributeNames.ORDER_CREATE_FORM) OrderCreateForm form,
             Model model
     ) {
+        BindingResult bindingResult = new BeanPropertyBindingResult(form, AttributeNames.ORDER_CREATE_FORM);
         orderCreateFacade.validate(form, bindingResult, userId);
         if (bindingResult.hasErrors()) {
             enrichModelForForm(userId, model);

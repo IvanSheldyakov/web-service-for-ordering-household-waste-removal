@@ -9,6 +9,8 @@ import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryE
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryRecord;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
+import ru.nsu.waste.removal.ordering.service.core.repository.history.param.AddEventParams;
+import ru.nsu.waste.removal.ordering.service.core.repository.history.param.CountByUserIdAndEventTypeInPeriodParams;
 
 import java.util.List;
 
@@ -104,14 +106,14 @@ public class UserActionHistoryRepository {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public void addEvent(long userId, String eventType, String contentJson, long pointsDifference) {
+    public void addEvent(AddEventParams params) {
         namedParameterJdbcTemplate.update(
                 ADD_EVENT_QUERY,
                 new MapSqlParameterSource()
-                        .addValue(ParameterNames.USER_ID, userId)
-                        .addValue(ParameterNames.EVENT_TYPE, eventType)
-                        .addValue(ParameterNames.CONTENT, contentJson)
-                        .addValue(ParameterNames.POINTS_DIFFERENCE, pointsDifference)
+                        .addValue(ParameterNames.USER_ID, params.userId())
+                        .addValue(ParameterNames.EVENT_TYPE, params.eventType())
+                        .addValue(ParameterNames.CONTENT, params.contentJson())
+                        .addValue(ParameterNames.POINTS_DIFFERENCE, params.pointsDifference())
         );
     }
 
@@ -142,19 +144,14 @@ public class UserActionHistoryRepository {
         return count == null ? 0L : count;
     }
 
-    public long countByUserIdAndEventTypeInPeriod(
-            long userId,
-            String eventType,
-            java.time.OffsetDateTime from,
-            java.time.OffsetDateTime to
-    ) {
+    public long countByUserIdAndEventTypeInPeriod(CountByUserIdAndEventTypeInPeriodParams params) {
         Long count = namedParameterJdbcTemplate.queryForObject(
                 COUNT_EVENTS_BY_USER_ID_AND_TYPE_IN_PERIOD_QUERY,
                 new MapSqlParameterSource()
-                        .addValue(ParameterNames.USER_ID, userId)
-                        .addValue(ParameterNames.EVENT_TYPE, eventType)
-                        .addValue(ParameterNames.FROM, from)
-                        .addValue(ParameterNames.TO, to),
+                        .addValue(ParameterNames.USER_ID, params.userId())
+                        .addValue(ParameterNames.EVENT_TYPE, params.eventType())
+                        .addValue(ParameterNames.FROM, params.from())
+                        .addValue(ParameterNames.TO, params.to()),
                 Long.class
         );
         return count == null ? 0L : count;
@@ -219,5 +216,4 @@ public class UserActionHistoryRepository {
                 )
         );
     }
-
 }

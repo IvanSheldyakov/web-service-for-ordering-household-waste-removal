@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.nsu.waste.removal.ordering.service.core.mapper.history.UserActionHistoryParamsMapper;
+import ru.nsu.waste.removal.ordering.service.core.mapper.user.UserInfoParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.event.OrderPaidWithPointsEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.order.OrderKey;
@@ -13,6 +15,7 @@ import ru.nsu.waste.removal.ordering.service.core.model.order.SlotOption;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserRewardState;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserInfoRepository;
+import ru.nsu.waste.removal.ordering.service.core.service.order.param.PayForOrderWithPointsParams;
 
 import java.util.List;
 
@@ -24,6 +27,8 @@ public class OrderPaymentService {
 
     private final UserInfoRepository userInfoRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
+    private final UserInfoParamsMapper userInfoParamsMapper;
+    private final UserActionHistoryParamsMapper userActionHistoryParamsMapper;
     private final ObjectMapper objectMapper;
 
     public UserRewardState lockRewardStateForPointsPayment(long userId, long costPoints) {
@@ -38,48 +43,40 @@ public class OrderPaymentService {
         return rewardState;
     }
 
-    public void payForOrderWithPoints(
-            long userId,
-            UserRewardState lockedRewardState,
-            OrderKey orderKey,
-            OrderType type,
-            SlotOption slot,
-            List<Long> fractionIds,
-            long costPoints
-    ) {
-        validateCostPoints(costPoints);
-        if (lockedRewardState == null || lockedRewardState.userId() != userId) {
+    public void payForOrderWithPoints(PayForOrderWithPointsParams params) {
+        validateCostPoints(params.costPoints());
+        if (params.lockedRewardState() == null || params.lockedRewardState().userId() != params.userId()) {
             throw new IllegalStateException("Reward state for payment is not locked for user");
         }
-        if (lockedRewardState.currentPoints() < costPoints) {
+        if (params.lockedRewardState().currentPoints() < params.costPoints()) {
             throw new IllegalStateException(INSUFFICIENT_POINTS_MESSAGE);
         }
 
-        long newCurrentPoints = safeSubtract(lockedRewardState.currentPoints(), costPoints);
-        userInfoRepository.updateRewardState(
-                userId,
-                lockedRewardState.totalPoints(),
+        long newCurrentPoints = safeSubtract(params.lockedRewardState().currentPoints(), params.costPoints());
+        userInfoRepository.updateRewardState(userInfoParamsMapper.mapToUpdateRewardStateParams(
+                params.userId(),
+                params.lockedRewardState().totalPoints(),
                 newCurrentPoints,
-                lockedRewardState.habitStrength()
-        );
+                params.lockedRewardState().habitStrength()
+        ));
 
-        List<Long> safeFractionIds = fractionIds == null ? List.of() : List.copyOf(fractionIds);
+        List<Long> safeFractionIds = params.fractionIds() == null ? List.of() : List.copyOf(params.fractionIds());
         OrderPaidWithPointsEventContent content = new OrderPaidWithPointsEventContent(
-                orderKey.id(),
-                type.dbName(),
-                slot.green(),
-                slot.pickupFrom().toString(),
-                slot.pickupTo().toString(),
+                params.orderKey().id(),
+                params.type().dbName(),
+                params.slot().green(),
+                params.slot().pickupFrom().toString(),
+                params.slot().pickupTo().toString(),
                 safeFractionIds,
-                costPoints,
+                params.costPoints(),
                 OrderPaymentStatus.PAID_WITH_POINTS.dbName()
         );
-        userActionHistoryRepository.addEvent(
-                userId,
+        userActionHistoryRepository.addEvent(userActionHistoryParamsMapper.mapToAddEventParams(
+                params.userId(),
                 UserActionEventType.ORDER_PAID_WITH_POINTS.dbName(),
                 toJson(content),
-                safeNegate(costPoints)
-        );
+                safeNegate(params.costPoints())
+        ));
     }
 
     private void validateCostPoints(long costPoints) {
@@ -110,4 +107,3 @@ public class OrderPaymentService {
         }
     }
 }
-

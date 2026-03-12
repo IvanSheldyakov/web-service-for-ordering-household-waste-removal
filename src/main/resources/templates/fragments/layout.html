@@ -1,9 +1,20 @@
 <!DOCTYPE html>
 <html lang="ru" xmlns:th="http://www.thymeleaf.org">
 <body>
-<header th:fragment="header(title)">
-    <div class="app-shell">
-        <h1 th:text="${title}">Регистрация</h1>
+<header class="site-header" th:fragment="header(title)">
+    <div class="header-shell">
+        <div class="brand-block">
+            <a class="brand-link" th:href="@{/registration}">EcoRoute</a>
+            <p class="brand-subtitle">Сервис вывоза отходов и экопривычек</p>
+        </div>
+        <nav class="header-nav">
+            <a th:href="@{/registration}">Регистрация</a>
+            <a th:href="@{/user/login}">Вход пользователя</a>
+            <a th:href="@{/courier/login}">Вход курьера</a>
+        </nav>
+    </div>
+    <div class="header-title-wrap">
+        <h1 class="page-title" th:text="${title}">Главная</h1>
     </div>
 </header>
 </body>
