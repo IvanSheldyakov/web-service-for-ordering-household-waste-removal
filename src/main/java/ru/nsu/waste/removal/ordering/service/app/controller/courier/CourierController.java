@@ -1,10 +1,9 @@
 package ru.nsu.waste.removal.ordering.service.app.controller.courier;
 
-import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +23,7 @@ public class CourierController {
     private static final String REDIRECT_PREFIX = "redirect:";
 
     private final CourierFacade courierFacade;
+    private final Validator validator;
 
     @GetMapping(Paths.COURIER_PANEL)
     public String getPanel(@PathVariable(Paths.COURIER_ID) long courierId, Model model) {
@@ -34,18 +34,17 @@ public class CourierController {
     @PostMapping(Paths.COURIER_TAKE_ORDER)
     public String takeOrder(
             @PathVariable(Paths.COURIER_ID) long courierId,
-            @Valid @ModelAttribute CourierOrderActionForm form,
-            BindingResult bindingResult,
+            @ModelAttribute CourierOrderActionForm form,
             RedirectAttributes redirectAttributes
     ) {
-        if (bindingResult.hasErrors()) {
-            redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, "Некорректные данные заказа");
+        if (hasValidationErrors(form)) {
+            redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ РґР°РЅРЅС‹Рµ Р·Р°РєР°Р·Р°");
             return redirectToPanel(courierId);
         }
 
         try {
             courierFacade.takeOrder(courierId, form);
-            redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, "Заказ успешно взят в работу");
+            redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, "Р—Р°РєР°Р· СѓСЃРїРµС€РЅРѕ РІР·СЏС‚ РІ СЂР°Р±РѕС‚Сѓ");
         } catch (IllegalStateException exception) {
             redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, exception.getMessage());
         }
@@ -56,14 +55,13 @@ public class CourierController {
     @PostMapping(Paths.COURIER_TAKE_ORDER_GROUP)
     public String takeOrderGroup(
             @PathVariable(Paths.COURIER_ID) long courierId,
-            @Valid @ModelAttribute CourierOrderGroupActionForm form,
-            BindingResult bindingResult,
+            @ModelAttribute CourierOrderGroupActionForm form,
             RedirectAttributes redirectAttributes
     ) {
-        if (bindingResult.hasErrors()) {
+        if (hasValidationErrors(form)) {
             redirectAttributes.addFlashAttribute(
                     AttributeNames.ERROR_MESSAGE,
-                    "Некорректные данные группы заказов"
+                    "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ РґР°РЅРЅС‹Рµ РіСЂСѓРїРїС‹ Р·Р°РєР°Р·РѕРІ"
             );
             return redirectToPanel(courierId);
         }
@@ -71,8 +69,8 @@ public class CourierController {
         try {
             courierFacade.takeOrderGroup(courierId, form);
             String successMessage = form.getExpectedOrderCount() != null && form.getExpectedOrderCount() > 1
-                    ? "В работу взято %s заказов".formatted(form.getExpectedOrderCount())
-                    : "Заказ успешно взят в работу";
+                    ? "Р’ СЂР°Р±РѕС‚Сѓ РІР·СЏС‚Рѕ %s Р·Р°РєР°Р·РѕРІ".formatted(form.getExpectedOrderCount())
+                    : "Р—Р°РєР°Р· СѓСЃРїРµС€РЅРѕ РІР·СЏС‚ РІ СЂР°Р±РѕС‚Сѓ";
             redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, successMessage);
         } catch (IllegalStateException exception) {
             redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, exception.getMessage());
@@ -84,18 +82,17 @@ public class CourierController {
     @PostMapping(Paths.COURIER_COMPLETE_ORDER)
     public String completeOrder(
             @PathVariable(Paths.COURIER_ID) long courierId,
-            @Valid @ModelAttribute CourierOrderActionForm form,
-            BindingResult bindingResult,
+            @ModelAttribute CourierOrderActionForm form,
             RedirectAttributes redirectAttributes
     ) {
-        if (bindingResult.hasErrors()) {
-            redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, "Некорректные данные заказа");
+        if (hasValidationErrors(form)) {
+            redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ РґР°РЅРЅС‹Рµ Р·Р°РєР°Р·Р°");
             return redirectToPanel(courierId);
         }
 
         try {
             courierFacade.completeOrder(courierId, form);
-            redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, "Заказ отмечен как выполненный");
+            redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, "Р—Р°РєР°Р· РѕС‚РјРµС‡РµРЅ РєР°Рє РІС‹РїРѕР»РЅРµРЅРЅС‹Р№");
         } catch (IllegalStateException exception) {
             redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, exception.getMessage());
         }
@@ -105,5 +102,9 @@ public class CourierController {
 
     private String redirectToPanel(long courierId) {
         return REDIRECT_PREFIX + Paths.COURIER + "/" + courierId + Paths.COURIER_HOME;
+    }
+
+    private boolean hasValidationErrors(Object form) {
+        return !validator.validate(form).isEmpty();
     }
 }

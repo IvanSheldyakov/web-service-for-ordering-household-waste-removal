@@ -3,6 +3,7 @@ package ru.nsu.waste.removal.ordering.service.core.service.user;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.mapper.user.UserInfoParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.level.Level;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserGreenSlotContext;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserProfileInfo;
@@ -19,11 +20,14 @@ public class UserInfoService {
     private final LevelRepository levelRepository;
     private final GeoClusterService geoClusterService;
     private final UserRegistrationPointsService userRegistrationPointsService;
+    private final UserInfoParamsMapper userInfoParamsMapper;
 
     @Transactional
     public long add(UserType userType, long addressId, long personId) {
         long initialPoints = userRegistrationPointsService.getInitialPoints();
-        long userId = userInfoRepository.addUserInfo(userType.getId(), addressId, personId, initialPoints);
+        long userId = userInfoRepository.addUserInfo(
+                userInfoParamsMapper.mapToAddUserInfoParams(userType.getId(), addressId, personId, initialPoints)
+        );
         if (userType == UserType.ACHIEVER) {
             Level firstLevel = levelRepository.findLowestLevel();
             userInfoRepository.addAchieverProfile(userId, firstLevel.id());

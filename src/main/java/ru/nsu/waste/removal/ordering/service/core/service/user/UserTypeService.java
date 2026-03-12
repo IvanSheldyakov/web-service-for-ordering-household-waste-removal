@@ -1,11 +1,14 @@
 package ru.nsu.waste.removal.ordering.service.core.service.user;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.nsu.waste.removal.ordering.service.core.exception.QuizValidationException;
+import ru.nsu.waste.removal.ordering.service.core.mapper.user.UserTypeParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.ActiveRegistrationQuizData;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizOption;
 import ru.nsu.waste.removal.ordering.service.core.model.registrationquiz.RegistrationQuizQuestion;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
+import ru.nsu.waste.removal.ordering.service.core.service.user.param.TieBreakWinnerParams;
 
 import java.util.EnumMap;
 import java.util.List;
@@ -13,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class UserTypeService {
 
     private static final List<UserType> TYPE_PRIORITY = List.of(
@@ -20,6 +24,8 @@ public class UserTypeService {
             UserType.SOCIALIZER,
             UserType.EXPLORER
     );
+
+    private final UserTypeParamsMapper userTypeParamsMapper;
 
     public UserType resolveUserType(
             ActiveRegistrationQuizData quizData,
@@ -48,30 +54,27 @@ public class UserTypeService {
             return winners.getFirst();
         }
 
-        Optional<UserType> tieBreakWinner = resolveTieBreakWinner(questions, answers, optionById, winners);
+        Optional<UserType> tieBreakWinner = resolveTieBreakWinner(
+                userTypeParamsMapper.mapToTieBreakWinnerParams(questions, answers, optionById, winners)
+        );
         return tieBreakWinner.orElseGet(() -> resolveByPriority(winners));
     }
 
-    private Optional<UserType> resolveTieBreakWinner(
-            List<RegistrationQuizQuestion> questions,
-            Map<Long, Long> answers,
-            Map<Integer, RegistrationQuizOption> optionById,
-            List<UserType> winners
-    ) {
-        for (RegistrationQuizQuestion question : questions) {
+    private Optional<UserType> resolveTieBreakWinner(TieBreakWinnerParams params) {
+        for (RegistrationQuizQuestion question : params.questions()) {
             if (!question.tiebreak()) {
                 continue;
             }
-            Long selectedOptionId = answers.get((long) question.id());
+            Long selectedOptionId = params.answers().get((long) question.id());
             if (selectedOptionId == null) {
                 continue;
             }
-            RegistrationQuizOption option = optionById.get(selectedOptionId.intValue());
+            RegistrationQuizOption option = params.optionById().get(selectedOptionId.intValue());
             if (option == null) {
                 continue;
             }
             UserType userType = UserType.fromId(option.userTypeId());
-            if (winners.contains(userType)) {
+            if (params.winners().contains(userType)) {
                 return Optional.of(userType);
             }
         }

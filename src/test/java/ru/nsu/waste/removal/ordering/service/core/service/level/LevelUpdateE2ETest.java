@@ -19,6 +19,7 @@ import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserRegistrationResult;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.repository.history.UserActionHistoryRepository;
+import ru.nsu.waste.removal.ordering.service.core.repository.history.param.AddEventParams;
 import ru.nsu.waste.removal.ordering.service.core.service.event.UserActionEventProcessorService;
 import ru.nsu.waste.removal.ordering.service.core.service.registration.RegistrationService;
 
@@ -195,12 +196,12 @@ class LevelUpdateE2ETest {
     }
 
     private void addRewardTriggerEvent(long userId, UserActionEventType eventType, boolean success) {
-        userActionHistoryRepository.addEvent(
+        userActionHistoryRepository.addEvent(new AddEventParams(
                 userId,
                 eventType.dbName(),
                 "{\"success\":" + success + "}",
                 0
-        );
+        ));
     }
 
     private int countUserAchievementsByCode(long userId, String achievementCode) {

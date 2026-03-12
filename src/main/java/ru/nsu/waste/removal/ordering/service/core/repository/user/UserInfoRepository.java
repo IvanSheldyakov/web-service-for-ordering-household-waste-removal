@@ -10,6 +10,8 @@ import ru.nsu.waste.removal.ordering.service.core.model.user.UserRewardState;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
+import ru.nsu.waste.removal.ordering.service.core.repository.user.param.AddUserInfoParams;
+import ru.nsu.waste.removal.ordering.service.core.repository.user.param.UpdateRewardStateParams;
 
 import java.util.HashMap;
 import java.util.List;
@@ -118,15 +120,15 @@ public class UserInfoRepository {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public long addUserInfo(int typeId, long addressId, long personId, long initialPoints) {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue(ParameterNames.TYPE_ID, typeId)
-                .addValue(ParameterNames.ADDRESS_ID, addressId)
-                .addValue(ParameterNames.PERSON_ID, personId)
-                .addValue(ParameterNames.TOTAL_POINTS, initialPoints)
-                .addValue(ParameterNames.CURRENT_POINTS, initialPoints);
+    public long addUserInfo(AddUserInfoParams params) {
+        MapSqlParameterSource queryParams = new MapSqlParameterSource()
+                .addValue(ParameterNames.TYPE_ID, params.typeId())
+                .addValue(ParameterNames.ADDRESS_ID, params.addressId())
+                .addValue(ParameterNames.PERSON_ID, params.personId())
+                .addValue(ParameterNames.TOTAL_POINTS, params.initialPoints())
+                .addValue(ParameterNames.CURRENT_POINTS, params.initialPoints());
 
-        Long id = namedParameterJdbcTemplate.queryForObject(ADD_USER_INFO_QUERY, params, Long.class);
+        Long id = namedParameterJdbcTemplate.queryForObject(ADD_USER_INFO_QUERY, queryParams, Long.class);
 
         if (id == null) {
             throw new IllegalStateException("Не удалось получить id для user_info");
@@ -175,14 +177,14 @@ public class UserInfoRepository {
         ).stream().findFirst();
     }
 
-    public void updateRewardState(long userId, long totalPoints, long currentPoints, long habitStrength) {
+    public void updateRewardState(UpdateRewardStateParams params) {
         namedParameterJdbcTemplate.update(
                 UPDATE_REWARD_STATE_QUERY,
                 new MapSqlParameterSource()
-                        .addValue(ParameterNames.USER_ID, userId)
-                        .addValue(ParameterNames.TOTAL_POINTS, totalPoints)
-                        .addValue(ParameterNames.CURRENT_POINTS, currentPoints)
-                        .addValue(ParameterNames.HABIT_STRENGTH, habitStrength)
+                        .addValue(ParameterNames.USER_ID, params.userId())
+                        .addValue(ParameterNames.TOTAL_POINTS, params.totalPoints())
+                        .addValue(ParameterNames.CURRENT_POINTS, params.currentPoints())
+                        .addValue(ParameterNames.HABIT_STRENGTH, params.habitStrength())
         );
     }
 

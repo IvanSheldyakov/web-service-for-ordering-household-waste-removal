@@ -10,6 +10,7 @@ import ru.nsu.waste.removal.ordering.service.core.model.ecotask.EcoTaskRuleType;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
+import ru.nsu.waste.removal.ordering.service.core.repository.ecotask.param.AddAssignedParams;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -105,14 +106,14 @@ public class UserEcoTaskRepository {
         return exists != null && exists;
     }
 
-    public void addAssigned(long userId, int ecoTaskId, OffsetDateTime assignedAt, OffsetDateTime expiredAt) {
+    public void addAssigned(AddAssignedParams params) {
         namedParameterJdbcTemplate.update(
                 INSERT_ASSIGNED_QUERY,
                 new MapSqlParameterSource()
-                        .addValue(ParameterNames.USER_ID, userId)
-                        .addValue(ParameterNames.ECO_TASK_ID, ecoTaskId)
-                        .addValue(ParameterNames.ASSIGNED_AT, assignedAt)
-                        .addValue(ParameterNames.EXPIRED_AT, expiredAt)
+                        .addValue(ParameterNames.USER_ID, params.userId())
+                        .addValue(ParameterNames.ECO_TASK_ID, params.ecoTaskId())
+                        .addValue(ParameterNames.ASSIGNED_AT, params.assignedAt())
+                        .addValue(ParameterNames.EXPIRED_AT, params.expiredAt())
         );
     }
 

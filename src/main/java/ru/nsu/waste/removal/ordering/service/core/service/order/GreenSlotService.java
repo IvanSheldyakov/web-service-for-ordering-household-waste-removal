@@ -2,6 +2,7 @@ package ru.nsu.waste.removal.ordering.service.core.service.order;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.nsu.waste.removal.ordering.service.core.mapper.cluster.ClusterParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.cluster.GeoClusterContext;
 import ru.nsu.waste.removal.ordering.service.core.model.order.GreenSlot;
 import ru.nsu.waste.removal.ordering.service.core.model.order.SlotOption;
@@ -29,6 +30,7 @@ public class GreenSlotService {
     private static final int DAYS_VISIBLE = 2;
 
     private final GeoClusterService geoClusterService;
+    private final ClusterParamsMapper clusterParamsMapper;
     private final Clock clock;
 
     public List<SlotOption> getSlotOptions(long userId) {
@@ -47,10 +49,12 @@ public class GreenSlotService {
                 .toOffsetDateTime();
 
         Set<SlotKey> plannedSlotKeys = geoClusterService.findPlannedSlotsInCluster(
-                        userId,
-                        clusterContext.clusterKey(),
-                        periodFrom,
-                        periodTo
+                        clusterParamsMapper.mapToFindPlannedSlotsInClusterParams(
+                                userId,
+                                clusterContext.clusterKey(),
+                                periodFrom,
+                                periodTo
+                        )
                 ).stream()
                 .map(SlotKey::fromSlot)
                 .collect(Collectors.toSet());

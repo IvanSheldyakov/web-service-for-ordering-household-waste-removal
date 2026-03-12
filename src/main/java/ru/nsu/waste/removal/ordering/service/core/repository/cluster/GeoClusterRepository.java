@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import ru.nsu.waste.removal.ordering.service.core.model.cluster.GeoClusterContext;
 import ru.nsu.waste.removal.ordering.service.core.model.cluster.GeoClusterKey;
 import ru.nsu.waste.removal.ordering.service.core.model.order.GreenSlot;
+import ru.nsu.waste.removal.ordering.service.core.repository.cluster.param.FindPlannedSlotsInClusterParams;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
 
@@ -61,19 +62,14 @@ public class GeoClusterRepository {
         ).stream().findFirst();
     }
 
-    public List<GreenSlot> findPlannedSlotsInCluster(
-            long excludedUserId,
-            GeoClusterKey clusterKey,
-            OffsetDateTime from,
-            OffsetDateTime to
-    ) {
+    public List<GreenSlot> findPlannedSlotsInCluster(FindPlannedSlotsInClusterParams params) {
         return namedParameterJdbcTemplate.query(
                 FIND_PLANNED_SLOTS_IN_CLUSTER_QUERY,
                 new MapSqlParameterSource()
-                        .addValue(ParameterNames.USER_ID, excludedUserId)
-                        .addValue(ParameterNames.POSTAL_CODE, clusterKey.value())
-                        .addValue(ParameterNames.FROM, from)
-                        .addValue(ParameterNames.TO, to),
+                        .addValue(ParameterNames.USER_ID, params.excludedUserId())
+                        .addValue(ParameterNames.POSTAL_CODE, params.clusterKey().value())
+                        .addValue(ParameterNames.FROM, params.from())
+                        .addValue(ParameterNames.TO, params.to()),
                 (rs, rowNum) -> new GreenSlot(
                         rs.getObject(ColumnNames.PICKUP_FROM, OffsetDateTime.class),
                         rs.getObject(ColumnNames.PICKUP_TO, OffsetDateTime.class)

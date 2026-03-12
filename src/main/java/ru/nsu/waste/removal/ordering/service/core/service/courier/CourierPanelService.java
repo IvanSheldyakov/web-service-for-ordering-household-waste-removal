@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.nsu.waste.removal.ordering.service.core.mapper.courier.CourierParamsMapper;
+import ru.nsu.waste.removal.ordering.service.core.mapper.history.UserActionHistoryParamsMapper;
 import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierOrderGroup;
 import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierOrderGroupKey;
 import ru.nsu.waste.removal.ordering.service.core.model.courier.CourierOrderInfo;
@@ -52,6 +54,8 @@ public class CourierPanelService {
     private final CourierRepository courierRepository;
     private final CourierOrderRepository courierOrderRepository;
     private final UserActionHistoryRepository userActionHistoryRepository;
+    private final CourierParamsMapper courierParamsMapper;
+    private final UserActionHistoryParamsMapper userActionHistoryParamsMapper;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
@@ -75,13 +79,13 @@ public class CourierPanelService {
     @Transactional
     public void takeOrder(long courierId, OrderKey orderKey) {
         CourierProfileInfo courierProfile = courierInfoService.getProfile(courierId);
-        boolean taken = courierOrderRepository.takeOrder(
+        boolean taken = courierOrderRepository.takeOrder(courierParamsMapper.mapToTakeOrderParams(
                 courierId,
                 orderKey.id(),
                 orderKey.createdAt(),
                 courierProfile.postalCode(),
                 OffsetDateTime.now(clock)
-        );
+        ));
 
         if (!taken) {
             throw new IllegalStateException(TAKE_ORDER_FAILED_MESSAGE);
@@ -99,13 +103,13 @@ public class CourierPanelService {
             throw new IllegalStateException(TAKE_GROUP_ACCESS_DENIED_MESSAGE);
         }
 
-        int updatedRows = courierOrderRepository.takeOrderGroup(
+        int updatedRows = courierOrderRepository.takeOrderGroup(courierParamsMapper.mapToTakeOrderGroupParams(
                 courierId,
                 groupKey.clusterKey(),
                 groupKey.pickupFrom(),
                 groupKey.pickupTo(),
                 OffsetDateTime.now(clock)
-        );
+        ));
 
         if (updatedRows != expectedOrderCount) {
             throw new IllegalStateException(TAKE_GROUP_CHANGED_MESSAGE);
@@ -120,12 +124,12 @@ public class CourierPanelService {
                 orderKey.createdAt()
         ).orElseThrow(() -> new IllegalStateException(COMPLETE_ORDER_NOT_FOUND_MESSAGE));
 
-        boolean done = courierOrderRepository.markDone(
+        boolean done = courierOrderRepository.markDone(courierParamsMapper.mapToMarkDoneParams(
                 courierId,
                 orderKey.id(),
                 orderKey.createdAt(),
                 OffsetDateTime.now(clock)
-        );
+        ));
 
         if (!done) {
             throw new IllegalStateException(COMPLETE_ORDER_FAILED_MESSAGE);
@@ -148,12 +152,12 @@ public class CourierPanelService {
                 DONE_STATUS
         );
 
-        userActionHistoryRepository.addEvent(
+        userActionHistoryRepository.addEvent(userActionHistoryParamsMapper.mapToAddEventParams(
                 assignedOrder.userId(),
                 UserActionEventType.ORDER_DONE.dbName(),
                 toJson(content),
                 ZERO_POINTS_DIFFERENCE
-        );
+        ));
     }
 
     private List<CourierOrderGroup> groupOrdersByClusterAndSlot(List<CourierOrderInfo> orders) {
