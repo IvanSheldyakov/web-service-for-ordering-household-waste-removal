@@ -6,7 +6,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.ActiveEcoTaskAssignment;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.AssignedEcoTask;
+import ru.nsu.waste.removal.ordering.service.core.model.ecotask.EcoTaskAssignmentStatus;
 import ru.nsu.waste.removal.ordering.service.core.model.ecotask.EcoTaskRuleType;
+import ru.nsu.waste.removal.ordering.service.core.model.ecotask.UserEcoTaskAssignmentItem;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
@@ -14,6 +16,8 @@ import ru.nsu.waste.removal.ordering.service.core.repository.ecotask.param.AddAs
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
@@ -21,6 +25,7 @@ public class UserEcoTaskRepository {
 
     private static final String STATUS_ASSIGNED = "ASSIGNED";
     private static final String STATUS_DONE = "DONE";
+    private static final String STATUS_EXPIRED = "EXPIRED";
 
     private static final String EXISTS_ACTIVE_ASSIGNMENT_QUERY = """
             select exists(
@@ -47,6 +52,7 @@ public class UserEcoTaskRepository {
                     :assignedAt,
                     :expiredAt
                     )
+            on conflict do nothing
             """;
 
     private static final String FIND_ASSIGNED_BY_USER_ID_QUERY = """
@@ -93,6 +99,55 @@ public class UserEcoTaskRepository {
               and status = :assignedStatus
             """;
 
+    private static final String EXPIRE_OVERDUE_ASSIGNMENTS_BY_USER_ID_QUERY = """
+            update user_eco_task
+            set status = :status
+            where user_id = :userId
+              and status = :assignedStatus
+              and expired_at < :now
+            """;
+
+    private static final String COUNT_ACTIVE_ASSIGNMENTS_BY_USER_ID_QUERY = """
+            select count(*)
+            from user_eco_task
+            where user_id = :userId
+              and status = 'ASSIGNED'
+            """;
+
+    private static final String FIND_ACTIVE_ECO_TASK_IDS_BY_USER_ID_QUERY = """
+            select eco_task_id
+            from user_eco_task
+            where user_id = :userId
+              and status = 'ASSIGNED'
+            """;
+
+    private static final String FIND_ALL_ECO_TASK_IDS_BY_USER_ID_QUERY = """
+            select distinct eco_task_id
+            from user_eco_task
+            where user_id = :userId
+            """;
+
+    private static final String FIND_ALL_ASSIGNMENTS_BY_USER_ID_QUERY = """
+            select uet.id,
+                   uet.eco_task_id,
+                   et.title,
+                   et.description,
+                   et.points,
+                   uet.status,
+                   uet.expired_at,
+                   uet.completed_at
+            from user_eco_task uet
+                     join eco_task et on et.id = uet.eco_task_id
+            where uet.user_id = :userId
+            order by case
+                         when uet.status = 'ASSIGNED' then 0
+                         when uet.status = 'DONE' then 1
+                         when uet.status = 'EXPIRED' then 2
+                         else 3
+                     end asc,
+                     uet.id desc
+            """;
+
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public boolean existsActiveAssignment(long userId, int ecoTaskId) {
@@ -106,8 +161,8 @@ public class UserEcoTaskRepository {
         return exists != null && exists;
     }
 
-    public void addAssigned(AddAssignedParams params) {
-        namedParameterJdbcTemplate.update(
+    public boolean addAssigned(AddAssignedParams params) {
+        int updatedRows = namedParameterJdbcTemplate.update(
                 INSERT_ASSIGNED_QUERY,
                 new MapSqlParameterSource()
                         .addValue(ParameterNames.USER_ID, params.userId())
@@ -115,6 +170,7 @@ public class UserEcoTaskRepository {
                         .addValue(ParameterNames.ASSIGNED_AT, params.assignedAt())
                         .addValue(ParameterNames.EXPIRED_AT, params.expiredAt())
         );
+        return updatedRows > 0;
     }
 
     public List<AssignedEcoTask> findAssignedByUserId(long userId) {
@@ -177,5 +233,58 @@ public class UserEcoTaskRepository {
                         .addValue(ParameterNames.ASSIGNED_STATUS, STATUS_ASSIGNED)
         );
         return updatedRows > 0;
+    }
+
+    public int expireOverdueAssignmentsByUserId(long userId, OffsetDateTime now) {
+        return namedParameterJdbcTemplate.update(
+                EXPIRE_OVERDUE_ASSIGNMENTS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource()
+                        .addValue(ParameterNames.USER_ID, userId)
+                        .addValue(ParameterNames.STATUS, STATUS_EXPIRED)
+                        .addValue(ParameterNames.ASSIGNED_STATUS, STATUS_ASSIGNED)
+                        .addValue(ParameterNames.NOW, now)
+        );
+    }
+
+    public int countActiveAssignmentsByUserId(long userId) {
+        Long count = namedParameterJdbcTemplate.queryForObject(
+                COUNT_ACTIVE_ASSIGNMENTS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_ID, userId),
+                Long.class
+        );
+        return count == null ? 0 : count.intValue();
+    }
+
+    public Set<Integer> findActiveEcoTaskIdsByUserId(long userId) {
+        return namedParameterJdbcTemplate.query(
+                FIND_ACTIVE_ECO_TASK_IDS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_ID, userId),
+                (rs, rowNum) -> rs.getInt(ColumnNames.ECO_TASK_ID)
+        ).stream().collect(Collectors.toSet());
+    }
+
+    public Set<Integer> findAllEcoTaskIdsByUserId(long userId) {
+        return namedParameterJdbcTemplate.query(
+                FIND_ALL_ECO_TASK_IDS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_ID, userId),
+                (rs, rowNum) -> rs.getInt(ColumnNames.ECO_TASK_ID)
+        ).stream().collect(Collectors.toSet());
+    }
+
+    public List<UserEcoTaskAssignmentItem> findAllAssignmentsByUserId(long userId) {
+        return namedParameterJdbcTemplate.query(
+                FIND_ALL_ASSIGNMENTS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_ID, userId),
+                (rs, rowNum) -> new UserEcoTaskAssignmentItem(
+                        rs.getLong(ColumnNames.ID),
+                        rs.getLong(ColumnNames.ECO_TASK_ID),
+                        rs.getString(ColumnNames.TITLE),
+                        rs.getString(ColumnNames.DESCRIPTION),
+                        rs.getLong(ColumnNames.POINTS),
+                        EcoTaskAssignmentStatus.fromDbName(rs.getString(ColumnNames.STATUS)),
+                        rs.getObject(ColumnNames.EXPIRED_AT, OffsetDateTime.class),
+                        rs.getObject(ColumnNames.COMPLETED_AT, OffsetDateTime.class)
+                )
+        );
     }
 }

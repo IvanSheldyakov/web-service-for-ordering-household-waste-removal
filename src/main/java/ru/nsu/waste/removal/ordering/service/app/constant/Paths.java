@@ -46,6 +46,16 @@ public final class Paths {
 
     public static final String HISTORY = "/history";
 
+    public static final String LEADERBOARD = "/leaderboard";
+
+    public static final String INFO_CARDS = "/info-cards";
+
+    public static final String GAMIFICATION = "/gamification";
+
+    public static final String CARD_ID = "cardId";
+
+    public static final String INFO_CARD_WITH_ID = INFO_CARDS + "/{" + CARD_ID + "}";
+
     public static final String ORDER_CREATE = "/order/create";
 
     public static final String USER_HOME = USER_WITH_ID + HOME;
@@ -53,6 +63,12 @@ public final class Paths {
     public static final String USER_ECO_DASHBOARD = USER_WITH_ID + ECO_DASHBOARD;
 
     public static final String USER_HISTORY = USER_WITH_ID + HISTORY;
+
+    public static final String USER_LEADERBOARD = USER_WITH_ID + LEADERBOARD;
+
+    public static final String USER_INFO_CARD = USER_WITH_ID + INFO_CARD_WITH_ID;
+
+    public static final String USER_GAMIFICATION = USER_WITH_ID + GAMIFICATION;
 
     public static final String USER_ORDER_CREATE = USER_WITH_ID + ORDER_CREATE;
 }

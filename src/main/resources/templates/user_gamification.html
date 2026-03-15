@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Геймификация</title>
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header('Эко-задания и достижения')}"></div>
+<main class="app-shell">
+    <section class="card motivation-zone">
+        <h2>Активные и завершенные эко-задания</h2>
+        <p th:if="${#lists.isEmpty(gamification.ecoTasks)}">Пока нет назначенных заданий.</p>
+        <ul class="list-cards" th:unless="${#lists.isEmpty(gamification.ecoTasks)}">
+            <li class="reward-card" th:each="task : ${gamification.ecoTasks}">
+                <strong th:text="${task.title}">Название задания</strong>
+                <p th:text="${task.description}">Описание задания</p>
+                <p>Базовая награда: <span class="hero-metric" th:text="${task.points}">0</span></p>
+                <p>Статус: <strong th:text="${task.status}">Активно</strong></p>
+                <p>
+                    Действует до:
+                    <span th:text="${task.expiredAt != null ? #temporals.format(task.expiredAt, 'yyyy-MM-dd HH:mm:ss') : '—'}">—</span>
+                </p>
+                <p>
+                    Выполнено:
+                    <span th:text="${task.completedAt != null ? #temporals.format(task.completedAt, 'yyyy-MM-dd HH:mm:ss') : '—'}">—</span>
+                </p>
+            </li>
+        </ul>
+    </section>
+
+    <section class="card motivation-zone">
+        <h2>Достижения</h2>
+        <p th:if="${#lists.isEmpty(gamification.achievements)}">Для вашего типа пользователя достижения пока не настроены.</p>
+        <ul class="list-cards" th:unless="${#lists.isEmpty(gamification.achievements)}">
+            <li class="achievement-card"
+                th:each="achievement : ${gamification.achievements}"
+                th:style="${achievement.unlocked} ? 'border-color: rgba(30, 127, 71, 0.38); background: linear-gradient(145deg, rgba(217, 242, 222, 0.6), rgba(255, 255, 255, 0.95));' : 'opacity: 0.85;'">
+                <strong th:text="${achievement.title}">Название достижения</strong>
+                <p th:text="${achievement.description}">Описание достижения</p>
+                <p>
+                    Статус:
+                    <span th:text="${achievement.unlocked ? 'Открыто' : 'Закрыто'}">Открыто</span>
+                </p>
+            </li>
+        </ul>
+    </section>
+
+    <section class="card">
+        <nav class="link-row">
+            <a th:href="@{/user/{userId}/home(userId=${userId})}">Вернуться на главную</a>
+        </nav>
+    </section>
+</main>
+</body>
+</html>

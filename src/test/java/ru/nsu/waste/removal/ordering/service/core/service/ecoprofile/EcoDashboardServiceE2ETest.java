@@ -239,6 +239,44 @@ class EcoDashboardServiceE2ETest {
         assertEquals(500L, dashboard.totalPoints());
     }
 
+    @Test
+    void getDashboard_whenWeekPeriod_usesCompletedAtForDoneStats() {
+        long userId = createUser("79000000004", "100004", "EXPLORER", 400L, 250L);
+
+        addOrderWithCompletedAt(
+                userId,
+                "MIXED",
+                "DONE",
+                OffsetDateTime.parse("2026-03-01T10:00:00+00:00"),
+                OffsetDateTime.parse("2026-03-18T10:30:00+00:00"),
+                "100004"
+        );
+        addOrderWithCompletedAt(
+                userId,
+                "SEPARATE",
+                "DONE",
+                OffsetDateTime.parse("2026-03-18T11:00:00+00:00"),
+                OffsetDateTime.parse("2026-03-25T11:30:00+00:00"),
+                "100004"
+        );
+        OrderRow countedSeparate = addOrderWithCompletedAt(
+                userId,
+                "SEPARATE",
+                "DONE",
+                OffsetDateTime.parse("2026-03-19T12:00:00+00:00"),
+                OffsetDateTime.parse("2026-03-19T12:30:00+00:00"),
+                "100004"
+        );
+        addOrderFraction(countedSeparate, "PAPER");
+
+        EcoDashboard dashboard = ecoDashboardService.getDashboard(userId, EcoDashboardPeriod.WEEK);
+
+        assertEquals(2L, dashboard.orders().doneTotal());
+        assertEquals(1L, dashboard.orders().doneSeparate());
+        assertEquals(50, dashboard.orders().separateSharePercent());
+        assertEquals(List.of("\u0411\u0443\u043c\u0430\u0433\u0430"), dashboard.fractions());
+    }
+
     private long createUser(
             String phone,
             String postalCode,
@@ -303,11 +341,30 @@ class EcoDashboardServiceE2ETest {
             OffsetDateTime createdAt,
             String postalCode
     ) {
+        return addOrderWithCompletedAt(
+                userId,
+                type,
+                status,
+                createdAt,
+                "DONE".equalsIgnoreCase(status) ? createdAt.plusMinutes(30) : null,
+                postalCode
+        );
+    }
+
+    private OrderRow addOrderWithCompletedAt(
+            long userId,
+            String type,
+            String status,
+            OffsetDateTime createdAt,
+            OffsetDateTime completedAt,
+            String postalCode
+    ) {
         OrderRow order = jdbcTemplate.queryForObject(
                 """
                         insert into order_info(
                             user_id,
                             created_at,
+                            completed_at,
                             type,
                             status,
                             pickup_from,
@@ -325,6 +382,7 @@ class EcoDashboardServiceE2ETest {
                 ),
                 userId,
                 createdAt,
+                completedAt,
                 type,
                 status,
                 createdAt.plusHours(1),

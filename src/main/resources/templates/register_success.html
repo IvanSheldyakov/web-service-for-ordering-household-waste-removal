@@ -18,6 +18,7 @@
             текущий: <span class="hero-metric" th:text="${result.balances.currentPoints}">0</span>
         </p>
         <p><a class="button-link" th:href="@{/user/{userId}/home(userId=${result.userId})}">Перейти на главную</a></p>
+        <p><a class="button-link" th:href="@{/user/{userId}/gamification(userId=${result.userId})}">Перейти в раздел геймификации</a></p>
     </section>
 
     <section class="card motivation-zone">

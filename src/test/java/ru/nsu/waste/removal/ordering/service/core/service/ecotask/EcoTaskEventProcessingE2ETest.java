@@ -101,12 +101,22 @@ class EcoTaskEventProcessingE2ETest {
         assertEquals(INITIAL_USER_POINTS, findUserTotalPoints(userId));
         assertEquals(INITIAL_USER_POINTS, findUserCurrentPoints(userId));
 
-        int secondProcessed = userActionEventProcessorService.processPendingEvents();
-
+        int secondProcessed = processUntilNoPendingEvents();
         assertTrue(secondProcessed >= 1);
+
         assertEquals(1, countEventsByType(userId, UserActionEventType.ECO_TASK_COMPLETED));
-        assertEquals(INITIAL_USER_POINTS + 100L, findUserTotalPoints(userId));
-        assertEquals(INITIAL_USER_POINTS + 100L, findUserCurrentPoints(userId));
+        assertEquals(1, countEventsByType(userId, UserActionEventType.ECO_TASK_REWARD_REQUEST));
+
+        long ecoTaskBaseDelta = findLatestPointsDifferenceByType(userId, UserActionEventType.ECO_TASK_COMPLETED);
+        long ecoTaskAdaptiveDelta = findLatestPointsDifferenceByType(userId, UserActionEventType.ECO_TASK_REWARD_REQUEST);
+        long regularityAdaptiveDelta = findLatestPointsDifferenceByType(
+                userId,
+                UserActionEventType.SORTING_REGULARITY_CONFIRMED
+        );
+
+        long expectedTotal = INITIAL_USER_POINTS + ecoTaskBaseDelta + ecoTaskAdaptiveDelta + regularityAdaptiveDelta;
+        assertEquals(expectedTotal, findUserTotalPoints(userId));
+        assertEquals(expectedTotal, findUserCurrentPoints(userId));
     }
 
     private void addDoneSeparateOrders(long userId, int count) {
@@ -121,6 +131,7 @@ class EcoTaskEventProcessingE2ETest {
                             insert into order_info(
                                                    user_id,
                                                    created_at,
+                                                   completed_at,
                                                    type,
                                                    status,
                                                    pickup_from,
@@ -143,6 +154,7 @@ class EcoTaskEventProcessingE2ETest {
                             """,
                     userId,
                     createdAt,
+                    createdAt.plusMinutes(30),
                     pickupFrom,
                     pickupTo
             );
@@ -188,19 +200,36 @@ class EcoTaskEventProcessingE2ETest {
     }
 
     private long findLatestEcoTaskCompletedPointsDifference(long userId) {
+        return findLatestPointsDifferenceByType(userId, UserActionEventType.ECO_TASK_COMPLETED);
+    }
+
+    private long findLatestPointsDifferenceByType(long userId, UserActionEventType eventType) {
         Long pointsDifference = jdbcTemplate.queryForObject(
                 """
                         select points_difference
                         from user_action_history
                         where user_id = ?
-                          and event_type = 'ECO_TASK_COMPLETED'
+                          and event_type = ?
                         order by id desc
                         limit 1
                         """,
                 Long.class,
-                userId
+                userId,
+                eventType.dbName()
         );
         return pointsDifference == null ? 0L : pointsDifference;
+    }
+
+    private int processUntilNoPendingEvents() {
+        int totalProcessed = 0;
+        for (int i = 0; i < 10; i++) {
+            int processed = userActionEventProcessorService.processPendingEvents();
+            totalProcessed += processed;
+            if (processed == 0) {
+                break;
+            }
+        }
+        return totalProcessed;
     }
 
     private long findUserTotalPoints(long userId) {

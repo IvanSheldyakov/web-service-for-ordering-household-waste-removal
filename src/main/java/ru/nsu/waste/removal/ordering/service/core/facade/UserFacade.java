@@ -3,23 +3,32 @@ package ru.nsu.waste.removal.ordering.service.core.facade;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.nsu.waste.removal.ordering.service.app.view.EcoDashboardViewModel;
+import ru.nsu.waste.removal.ordering.service.app.view.UserGamificationViewModel;
 import ru.nsu.waste.removal.ordering.service.app.view.UserHistoryViewModel;
 import ru.nsu.waste.removal.ordering.service.app.view.UserHomeViewModel;
+import ru.nsu.waste.removal.ordering.service.app.view.UserInfoCardViewModel;
+import ru.nsu.waste.removal.ordering.service.app.view.UserLeaderboardViewModel;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.EcoDashboard;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.EcoDashboardPeriod;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.UserHistory;
 import ru.nsu.waste.removal.ordering.service.core.model.level.Level;
 import ru.nsu.waste.removal.ordering.service.core.model.order.ActiveOrderInfo;
+import ru.nsu.waste.removal.ordering.service.core.model.user.LeaderboardPeriod;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserLeaderboard;
+import ru.nsu.waste.removal.ordering.service.core.model.user.UserLeaderboardEntry;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserProfileInfo;
 import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.repository.level.LevelRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.AchieverProfileRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserLeaderboardRepository;
+import ru.nsu.waste.removal.ordering.service.core.service.achievement.AchievementService;
 import ru.nsu.waste.removal.ordering.service.core.service.ecoprofile.EcoDashboardService;
 import ru.nsu.waste.removal.ordering.service.core.service.ecoprofile.UserHistoryService;
+import ru.nsu.waste.removal.ordering.service.core.service.ecotask.EcoTaskService;
 import ru.nsu.waste.removal.ordering.service.core.service.infocard.InfoCardService;
 import ru.nsu.waste.removal.ordering.service.core.service.order.OrderInfoService;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
+import ru.nsu.waste.removal.ordering.service.core.service.user.UserLeaderboardService;
 
 import java.time.Clock;
 import java.time.DateTimeException;
@@ -29,6 +38,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -36,12 +46,16 @@ public class UserFacade {
 
     private static final int FULL_PROGRESS_PERCENT = 100;
     private static final int WEEK_DAYS = 7;
+    private static final int LEADERBOARD_TOP_LIMIT = 10;
 
     private final UserInfoService userInfoService;
     private final OrderInfoService orderInfoService;
     private final AchieverProfileRepository achieverProfileRepository;
     private final LevelRepository levelRepository;
     private final UserLeaderboardRepository userLeaderboardRepository;
+    private final UserLeaderboardService userLeaderboardService;
+    private final AchievementService achievementService;
+    private final EcoTaskService ecoTaskService;
     private final InfoCardService infoCardService;
     private final EcoDashboardService ecoDashboardService;
     private final UserHistoryService userHistoryService;
@@ -117,6 +131,78 @@ public class UserFacade {
                                 item.balanceAfter()
                         ))
                         .toList()
+        );
+    }
+
+    public UserLeaderboardViewModel getLeaderboard(long userId, LeaderboardPeriod period) {
+        UserLeaderboard leaderboard = userLeaderboardService.getLeaderboard(userId, period, LEADERBOARD_TOP_LIMIT);
+        List<UserLeaderboardViewModel.EntryViewModel> entries = leaderboard.topEntries().stream()
+                .map(entry -> toLeaderboardEntryViewModel(entry, userId))
+                .toList();
+
+        boolean currentUserInTop = entries.stream().anyMatch(UserLeaderboardViewModel.EntryViewModel::currentUser);
+        UserLeaderboardViewModel.EntryViewModel currentUserOutsideTop = null;
+        if (!currentUserInTop && leaderboard.currentUserEntry() != null) {
+            currentUserOutsideTop = toLeaderboardEntryViewModel(leaderboard.currentUserEntry(), userId);
+        }
+
+        List<UserLeaderboardViewModel.PeriodOptionViewModel> periodOptions = List.of(
+                toPeriodOptionViewModel(LeaderboardPeriod.WEEK, leaderboard.period()),
+                toPeriodOptionViewModel(LeaderboardPeriod.MONTH, leaderboard.period())
+        );
+
+        return new UserLeaderboardViewModel(
+                leaderboard.userId(),
+                leaderboard.period().name(),
+                leaderboard.period().title(),
+                periodOptions,
+                entries,
+                currentUserOutsideTop
+        );
+    }
+
+    public UserInfoCardViewModel getInfoCard(long userId, long cardId) {
+        var card = infoCardService.openCard(userId, cardId);
+        return new UserInfoCardViewModel(
+                userId,
+                card.id(),
+                card.title(),
+                card.description()
+        );
+    }
+
+    public UserGamificationViewModel getGamification(long userId) {
+        UserProfileInfo profile = userInfoService.getProfileByUserId(userId);
+        ZoneId userZoneId = resolveUserZoneId(userId);
+        Set<Integer> unlockedAchievementIds = achievementService.findUnlockedAchievementIdsByUserId(userId);
+
+        List<UserGamificationViewModel.EcoTaskViewModel> ecoTasks = ecoTaskService.findAllAssignmentsByUserId(userId).stream()
+                .map(task -> new UserGamificationViewModel.EcoTaskViewModel(
+                        task.userEcoTaskId(),
+                        task.ecoTaskId(),
+                        task.title(),
+                        task.description(),
+                        task.points(),
+                        localizeEcoTaskStatus(task.status().name()),
+                        convertToUserTimezone(task.expiredAt(), userZoneId),
+                        convertToUserTimezone(task.completedAt(), userZoneId)
+                ))
+                .toList();
+
+        List<UserGamificationViewModel.AchievementViewModel> achievements =
+                achievementService.findByUserType(profile.userType()).stream()
+                        .map(achievement -> new UserGamificationViewModel.AchievementViewModel(
+                                achievement.id(),
+                                achievement.title(),
+                                achievement.description(),
+                                unlockedAchievementIds.contains(achievement.id())
+                        ))
+                        .toList();
+
+        return new UserGamificationViewModel(
+                userId,
+                ecoTasks,
+                achievements
         );
     }
 
@@ -208,6 +294,35 @@ public class UserFacade {
         );
     }
 
+    private UserLeaderboardViewModel.EntryViewModel toLeaderboardEntryViewModel(
+            UserLeaderboardEntry entry,
+            long currentUserId
+    ) {
+        String fullName = entry.fullName();
+        if (fullName == null || fullName.isBlank()) {
+            fullName = "Пользователь #" + entry.userId();
+        }
+
+        return new UserLeaderboardViewModel.EntryViewModel(
+                entry.userId(),
+                fullName,
+                entry.rankPosition(),
+                entry.score(),
+                entry.userId() == currentUserId
+        );
+    }
+
+    private UserLeaderboardViewModel.PeriodOptionViewModel toPeriodOptionViewModel(
+            LeaderboardPeriod option,
+            LeaderboardPeriod selected
+    ) {
+        return new UserLeaderboardViewModel.PeriodOptionViewModel(
+                option.name(),
+                option.title(),
+                option == selected
+        );
+    }
+
     private ZoneId resolveUserZoneId(long userId) {
         String timezone = userInfoService.getGreenSlotContextByUserId(userId).timezone();
         try {
@@ -246,6 +361,20 @@ public class UserFacade {
             case "PAID_WITH_POINTS" -> "Оплачен баллами";
             case "UNPAID" -> "Без внутренней оплаты";
             default -> "Без внутренней оплаты";
+        };
+    }
+
+    private String localizeEcoTaskStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return "Неизвестно";
+        }
+
+        return switch (status.trim().toUpperCase(Locale.ROOT)) {
+            case "ASSIGNED" -> "Активно";
+            case "DONE" -> "Выполнено";
+            case "EXPIRED" -> "Истекло";
+            case "CANCELLED" -> "Отменено";
+            default -> "Неизвестно";
         };
     }
 

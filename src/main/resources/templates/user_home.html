@@ -68,6 +68,9 @@
                 Ваше место в рейтинге района за 7 дней:
                 <strong class="rank-badge" th:text="${home.motivation.socializer.weeklyRankPosition != null ? '#' + home.motivation.socializer.weeklyRankPosition : '—'}">—</strong>
             </p>
+            <p>
+                <a class="subtle-link" th:href="@{/user/{userId}/leaderboard(userId=${home.userId})}">Открыть полный рейтинг</a>
+            </p>
         </div>
 
         <div class="motivation-spot explorer-spot" th:if="${home.userType == 'EXPLORER' and home.motivation.explorer != null}">
@@ -75,7 +78,10 @@
             <p th:if="${#lists.isEmpty(home.motivation.explorer.cards)}">Карточки пока недоступны</p>
             <div class="card-grid motivation-cards" th:unless="${#lists.isEmpty(home.motivation.explorer.cards)}">
                 <article class="info-card motivation-card" th:each="card : ${home.motivation.explorer.cards}">
-                    <h3 th:text="${card.title}">Заголовок</h3>
+                    <h3>
+                        <a th:href="@{/user/{userId}/info-cards/{cardId}(userId=${home.userId},cardId=${card.id})}"
+                           th:text="${card.title}">Заголовок</a>
+                    </h3>
                     <p th:text="${card.description}">Описание</p>
                 </article>
             </div>
@@ -87,6 +93,8 @@
         <nav class="link-row">
             <a th:href="@{/user/{userId}/eco-dashboard(userId=${home.userId})}">Дашборд экологического прогресса</a>
             <a th:href="@{/user/{userId}/history(userId=${home.userId})}">История действий</a>
+            <a th:href="@{/user/{userId}/leaderboard(userId=${home.userId})}">Рейтинг района</a>
+            <a th:href="@{/user/{userId}/gamification(userId=${home.userId})}">Эко-задания и достижения</a>
         </nav>
     </section>
 </main>

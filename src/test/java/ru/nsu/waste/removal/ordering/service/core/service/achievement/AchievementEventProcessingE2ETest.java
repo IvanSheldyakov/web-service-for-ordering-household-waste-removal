@@ -135,6 +135,7 @@ class AchievementEventProcessingE2ETest {
                             insert into order_info(
                                                    user_id,
                                                    created_at,
+                                                   completed_at,
                                                    type,
                                                    status,
                                                    pickup_from,
@@ -157,6 +158,7 @@ class AchievementEventProcessingE2ETest {
                             """,
                     userId,
                     createdAt,
+                    createdAt.plusMinutes(30),
                     pickupFrom,
                     pickupTo
             );

@@ -35,6 +35,7 @@ public class UserActionHistoryRepository {
 
     private static final String FIND_EVENTS_AFTER_ID_QUERY = """
             select id,
+                   created_at,
                    user_id,
                    event_type,
                    points_difference,
@@ -125,6 +126,7 @@ public class UserActionHistoryRepository {
                         .addValue(ParameterNames.LIMIT, limit),
                 (rs, rowNum) -> new UserActionHistoryEvent(
                         rs.getLong(ColumnNames.ID),
+                        rs.getObject(ColumnNames.CREATED_AT, java.time.OffsetDateTime.class),
                         rs.getLong(ColumnNames.USER_ID),
                         UserActionEventType.fromDbName(rs.getString(ColumnNames.EVENT_TYPE)),
                         rs.getLong(ColumnNames.POINTS_DIFFERENCE),

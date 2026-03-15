@@ -13,11 +13,14 @@ import ru.nsu.waste.removal.ordering.service.core.model.user.UserType;
 import ru.nsu.waste.removal.ordering.service.core.repository.level.LevelRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.AchieverProfileRepository;
 import ru.nsu.waste.removal.ordering.service.core.repository.user.UserLeaderboardRepository;
+import ru.nsu.waste.removal.ordering.service.core.service.achievement.AchievementService;
 import ru.nsu.waste.removal.ordering.service.core.service.ecoprofile.EcoDashboardService;
 import ru.nsu.waste.removal.ordering.service.core.service.ecoprofile.UserHistoryService;
+import ru.nsu.waste.removal.ordering.service.core.service.ecotask.EcoTaskService;
 import ru.nsu.waste.removal.ordering.service.core.service.infocard.InfoCardService;
 import ru.nsu.waste.removal.ordering.service.core.service.order.OrderInfoService;
 import ru.nsu.waste.removal.ordering.service.core.service.user.UserInfoService;
+import ru.nsu.waste.removal.ordering.service.core.service.user.UserLeaderboardService;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
@@ -43,6 +46,15 @@ class UserFacadeTest {
 
     @Mock
     private UserLeaderboardRepository userLeaderboardRepository;
+
+    @Mock
+    private UserLeaderboardService userLeaderboardService;
+
+    @Mock
+    private AchievementService achievementService;
+
+    @Mock
+    private EcoTaskService ecoTaskService;
 
     @Mock
     private InfoCardService infoCardService;
@@ -99,4 +111,3 @@ class UserFacadeTest {
         assertEquals("Оплачен баллами", order.paymentStatus());
     }
 }
-
