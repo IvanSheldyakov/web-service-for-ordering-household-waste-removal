@@ -133,19 +133,24 @@ class RewardPipelineE2ETest {
     void processPendingEvents_whenMissedWindowOccurs_habitStrengthDecreasesAndRewardCanGrowAgain() {
         long userId = registerAchiever("77007770013");
         for (int i = 0; i < 8; i++) {
-            addRewardTriggerEvent(userId, UserActionEventType.SEPARATE_CHOSEN, true);
+            addRewardTriggerEvent(userId, UserActionEventType.SORTING_REGULARITY_CONFIRMED, true);
         }
         userActionEventProcessorService.processPendingEvents();
 
-        long rewardBeforeMiss = findLatestPointsDifferenceByType(userId, UserActionEventType.SEPARATE_CHOSEN);
+        long rewardBeforeMiss = findLatestPointsDifferenceByType(
+                userId,
+                UserActionEventType.SORTING_REGULARITY_CONFIRMED
+        );
         long habitStrengthBeforeMiss = findHabitStrength(userId);
 
-        userActionHistoryRepository.addEvent(new AddEventParams(
-                userId,
-                UserActionEventType.SORTING_REGULARITY_MISSED.dbName(),
-                "{\"success\":false}",
-                0
-        ));
+        for (int i = 0; i < 2; i++) {
+            userActionHistoryRepository.addEvent(new AddEventParams(
+                    userId,
+                    UserActionEventType.SORTING_REGULARITY_MISSED.dbName(),
+                    "{\"success\":false}",
+                    0
+            ));
+        }
         userActionEventProcessorService.processPendingEvents();
 
         long missDelta = findLatestPointsDifferenceByType(userId, UserActionEventType.SORTING_REGULARITY_MISSED);
@@ -153,10 +158,13 @@ class RewardPipelineE2ETest {
         assertTrue(missDelta <= 0L);
         assertTrue(habitStrengthAfterMiss < habitStrengthBeforeMiss);
 
-        addRewardTriggerEvent(userId, UserActionEventType.SEPARATE_CHOSEN, true);
+        addRewardTriggerEvent(userId, UserActionEventType.SORTING_REGULARITY_CONFIRMED, true);
         userActionEventProcessorService.processPendingEvents();
 
-        long rewardAfterMiss = findLatestPointsDifferenceByType(userId, UserActionEventType.SEPARATE_CHOSEN);
+        long rewardAfterMiss = findLatestPointsDifferenceByType(
+                userId,
+                UserActionEventType.SORTING_REGULARITY_CONFIRMED
+        );
         assertTrue(rewardAfterMiss > rewardBeforeMiss);
     }
 

@@ -147,6 +147,7 @@ class AchievementEventProcessingE2ETest {
                             values (
                                     ?,
                                     ?,
+                                    ?,
                                     'SEPARATE',
                                     'DONE',
                                     ?,

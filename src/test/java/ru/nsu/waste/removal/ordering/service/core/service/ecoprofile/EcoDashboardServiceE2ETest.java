@@ -373,7 +373,7 @@ class EcoDashboardServiceE2ETest {
                             cost_points,
                             green_chosen
                         )
-                        values (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                         returning id, created_at
                         """,
                 (rs, rowNum) -> new OrderRow(

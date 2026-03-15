@@ -250,6 +250,7 @@ public class EcoTaskService implements UserActionEventHandler {
 
         Set<Integer> activeTaskIds = userEcoTaskRepository.findActiveEcoTaskIdsByUserId(userId);
         Set<Integer> allAssignedTaskIds = userEcoTaskRepository.findAllEcoTaskIdsByUserId(userId);
+        Set<Integer> doneTaskIds = userEcoTaskRepository.findDoneEcoTaskIdsByUserId(userId);
         ZoneId zoneId = resolveUserZoneId(userId);
 
         List<EcoTask> freshTasks = new ArrayList<>();
@@ -259,6 +260,9 @@ public class EcoTaskService implements UserActionEventHandler {
                 continue;
             }
             if (allAssignedTaskIds.contains(task.id())) {
+                if (doneTaskIds.contains(task.id())) {
+                    continue;
+                }
                 repeatedTasks.add(task);
             } else {
                 freshTasks.add(task);

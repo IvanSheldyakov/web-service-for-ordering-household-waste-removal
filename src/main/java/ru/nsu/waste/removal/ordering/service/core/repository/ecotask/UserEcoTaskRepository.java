@@ -127,6 +127,13 @@ public class UserEcoTaskRepository {
             where user_id = :userId
             """;
 
+    private static final String FIND_DONE_ECO_TASK_IDS_BY_USER_ID_QUERY = """
+            select distinct eco_task_id
+            from user_eco_task
+            where user_id = :userId
+              and status = 'DONE'
+            """;
+
     private static final String FIND_ALL_ASSIGNMENTS_BY_USER_ID_QUERY = """
             select uet.id,
                    uet.eco_task_id,
@@ -266,6 +273,14 @@ public class UserEcoTaskRepository {
     public Set<Integer> findAllEcoTaskIdsByUserId(long userId) {
         return namedParameterJdbcTemplate.query(
                 FIND_ALL_ECO_TASK_IDS_BY_USER_ID_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_ID, userId),
+                (rs, rowNum) -> rs.getInt(ColumnNames.ECO_TASK_ID)
+        ).stream().collect(Collectors.toSet());
+    }
+
+    public Set<Integer> findDoneEcoTaskIdsByUserId(long userId) {
+        return namedParameterJdbcTemplate.query(
+                FIND_DONE_ECO_TASK_IDS_BY_USER_ID_QUERY,
                 new MapSqlParameterSource(ParameterNames.USER_ID, userId),
                 (rs, rowNum) -> rs.getInt(ColumnNames.ECO_TASK_ID)
         ).stream().collect(Collectors.toSet());
