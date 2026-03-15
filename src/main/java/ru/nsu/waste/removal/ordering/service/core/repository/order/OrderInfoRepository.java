@@ -41,6 +41,16 @@ public class OrderInfoRepository {
               and oi.green_chosen = true
             """;
 
+    private static final String COUNT_DONE_SEPARATE_ORDERS_COMPLETED_IN_PERIOD_QUERY = """
+            select count(*)
+            from order_info oi
+            where oi.user_id = :userId
+              and oi.status = 'DONE'
+              and oi.type = 'SEPARATE'
+              and coalesce(oi.completed_at, oi.created_at) >= :from
+              and coalesce(oi.completed_at, oi.created_at) < :to
+            """;
+
     private static final String COUNT_DISTINCT_FRACTIONS_IN_DONE_SEPARATE_ORDERS_QUERY = """
             select count(distinct owf.fraction_id)
             from order_info oi
@@ -80,8 +90,21 @@ public class OrderInfoRepository {
             select count(*)
             from order_info oi
             where oi.user_id = :userId
-              and oi.created_at >= :from
-              and oi.created_at <= :to
+              and (
+                    (
+                        cast(:status as varchar) = 'DONE'
+                        and coalesce(oi.completed_at, oi.created_at) >= :from
+                        and coalesce(oi.completed_at, oi.created_at) <= :to
+                    )
+                    or (
+                        (
+                            cast(:status as varchar) is null
+                            or cast(:status as varchar) <> 'DONE'
+                        )
+                        and oi.created_at >= :from
+                        and oi.created_at <= :to
+                    )
+                  )
               and (cast(:status as varchar) is null or oi.status = cast(:status as varchar))
               and (cast(:type as varchar) is null or oi.type = cast(:type as varchar))
               and (cast(:greenChosen as boolean) is null or oi.green_chosen = cast(:greenChosen as boolean))
@@ -94,8 +117,21 @@ public class OrderInfoRepository {
                           on owf.order_id = oi.id
                               and owf.order_created_at = oi.created_at
             where oi.user_id = :userId
-              and oi.created_at >= :from
-              and oi.created_at <= :to
+              and (
+                    (
+                        cast(:status as varchar) = 'DONE'
+                        and coalesce(oi.completed_at, oi.created_at) >= :from
+                        and coalesce(oi.completed_at, oi.created_at) <= :to
+                    )
+                    or (
+                        (
+                            cast(:status as varchar) is null
+                            or cast(:status as varchar) <> 'DONE'
+                        )
+                        and oi.created_at >= :from
+                        and oi.created_at <= :to
+                    )
+                  )
               and (cast(:status as varchar) is null or oi.status = cast(:status as varchar))
               and (cast(:type as varchar) is null or oi.type = cast(:type as varchar))
               and (cast(:greenChosen as boolean) is null or oi.green_chosen = cast(:greenChosen as boolean))
@@ -110,8 +146,21 @@ public class OrderInfoRepository {
                      join waste_fraction wf
                           on wf.id = owf.fraction_id
             where oi.user_id = :userId
-              and oi.created_at >= :from
-              and oi.created_at <= :to
+              and (
+                    (
+                        cast(:status as varchar) = 'DONE'
+                        and coalesce(oi.completed_at, oi.created_at) >= :from
+                        and coalesce(oi.completed_at, oi.created_at) <= :to
+                    )
+                    or (
+                        (
+                            cast(:status as varchar) is null
+                            or cast(:status as varchar) <> 'DONE'
+                        )
+                        and oi.created_at >= :from
+                        and oi.created_at <= :to
+                    )
+                  )
               and (cast(:status as varchar) is null or oi.status = cast(:status as varchar))
               and (cast(:type as varchar) is null or oi.type = cast(:type as varchar))
               and (cast(:greenChosen as boolean) is null or oi.green_chosen = cast(:greenChosen as boolean))
@@ -142,6 +191,18 @@ public class OrderInfoRepository {
         Long count = namedParameterJdbcTemplate.queryForObject(
                 COUNT_DONE_GREEN_ORDERS_QUERY,
                 new MapSqlParameterSource(ParameterNames.USER_ID, userId),
+                Long.class
+        );
+        return count == null ? 0L : count;
+    }
+
+    public long countDoneSeparateOrdersCompletedInPeriod(long userId, java.time.OffsetDateTime from, java.time.OffsetDateTime to) {
+        Long count = namedParameterJdbcTemplate.queryForObject(
+                COUNT_DONE_SEPARATE_ORDERS_COMPLETED_IN_PERIOD_QUERY,
+                new MapSqlParameterSource()
+                        .addValue(ParameterNames.USER_ID, userId)
+                        .addValue(ParameterNames.FROM, from)
+                        .addValue(ParameterNames.TO, to),
                 Long.class
         );
         return count == null ? 0L : count;

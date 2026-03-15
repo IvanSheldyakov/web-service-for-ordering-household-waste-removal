@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рейтинг района</title>
+    <link rel="stylesheet" th:href="@{/css/home.css}">
+</head>
+<body>
+<div th:replace="~{fragments/layout :: header('Рейтинг района')}"></div>
+<main class="app-shell">
+    <section class="card top-panel motivation-hero">
+        <div class="hero-balance">
+            <h2>Лидерборд пользователей района</h2>
+            <p>Период: <strong th:text="${leaderboard.periodTitle}">7 дней</strong></p>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Период отображения</h2>
+        <nav class="period-switch">
+            <a class="period-link"
+               th:each="option : ${leaderboard.periodOptions}"
+               th:href="@{/user/{userId}/leaderboard(userId=${leaderboard.userId},period=${option.key})}"
+               th:classappend="${option.selected} ? ' period-link-active' : ''"
+               th:text="${option.title}">7 дней</a>
+        </nav>
+    </section>
+
+    <section class="card motivation-zone">
+        <h2>Лидеры</h2>
+        <p th:if="${#lists.isEmpty(leaderboard.entries)}">Пока нет данных для рейтинга.</p>
+
+        <div class="history-table-wrapper" th:unless="${#lists.isEmpty(leaderboard.entries)}">
+            <table class="history-table">
+                <thead>
+                <tr>
+                    <th>Позиция</th>
+                    <th>Пользователь</th>
+                    <th>Баллы за период</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="entry : ${leaderboard.entries}"
+                    th:style="${entry.currentUser} ? 'background: rgba(217, 242, 222, 0.65); font-weight: 700;' : ''">
+                    <td th:text="${'#' + entry.rankPosition}">#1</td>
+                    <td>
+                        <span th:text="${entry.displayName}">Пользователь</span>
+                        <span th:if="${entry.currentUser}">(вы)</span>
+                    </td>
+                    <td th:text="${entry.score}">0</td>
+                </tr>
+                <tr th:if="${leaderboard.currentUserOutsideTop != null}"
+                    style="background: rgba(255, 242, 218, 0.7); font-weight: 700;">
+                    <td th:text="${'#' + leaderboard.currentUserOutsideTop.rankPosition}">#27</td>
+                    <td>
+                        <span th:text="${leaderboard.currentUserOutsideTop.displayName}">Пользователь</span>
+                        <span>(вы)</span>
+                    </td>
+                    <td th:text="${leaderboard.currentUserOutsideTop.score}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <a th:href="@{/user/{userId}/home(userId=${userId})}">Вернуться на главную</a>
+    </section>
+</main>
+</body>
+</html>

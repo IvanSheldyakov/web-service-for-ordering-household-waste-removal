@@ -29,6 +29,19 @@ public class EcoTaskRepository {
             limit :limit
             """;
 
+    private static final String FIND_ALL_ACTIVE_BY_USER_TYPE_QUERY = """
+            select id,
+                   code,
+                   title,
+                   description,
+                   points,
+                   period
+            from eco_task
+            where user_type_id = :userTypeId
+              and is_active = true
+            order by id asc
+            """;
+
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public List<EcoTask> findActiveByUserType(int userTypeId, int limit) {
@@ -39,6 +52,21 @@ public class EcoTaskRepository {
         return namedParameterJdbcTemplate.query(
                 FIND_ACTIVE_BY_USER_TYPE_QUERY,
                 paramSource,
+                (rs, rowNum) -> new EcoTask(
+                        rs.getInt(ColumnNames.ID),
+                        rs.getString(ColumnNames.CODE),
+                        rs.getString(ColumnNames.TITLE),
+                        rs.getString(ColumnNames.DESCRIPTION),
+                        rs.getLong(ColumnNames.POINTS),
+                        EcoTaskPeriod.valueOf(rs.getString(ColumnNames.PERIOD))
+                )
+        );
+    }
+
+    public List<EcoTask> findActiveByUserType(int userTypeId) {
+        return namedParameterJdbcTemplate.query(
+                FIND_ALL_ACTIVE_BY_USER_TYPE_QUERY,
+                new MapSqlParameterSource(ParameterNames.USER_TYPE_ID, userTypeId),
                 (rs, rowNum) -> new EcoTask(
                         rs.getInt(ColumnNames.ID),
                         rs.getString(ColumnNames.CODE),

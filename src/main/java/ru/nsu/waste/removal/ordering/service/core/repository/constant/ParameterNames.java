@@ -114,6 +114,10 @@ public final class ParameterNames {
 
     public static final String DELTA = "delta";
 
+    public static final String WINDOW_START = "windowStart";
+
+    public static final String WINDOW_END = "windowEnd";
+
     public static final String FRACTION_ID = "fractionId";
 
     public static final String FRACTION_IDS = "fractionIds";

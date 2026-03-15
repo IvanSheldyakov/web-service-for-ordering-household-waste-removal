@@ -46,7 +46,7 @@ public class LiederGamificationService implements UserActionEventHandler {
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handle(UserActionHistoryEvent event) {
-        boolean success = extractSuccess(event.content());
+        boolean success = extractSuccess(event.eventType(), event.content());
 
         UserRewardState state = userInfoRepository.findRewardStateForUpdate(event.userId())
                 .orElseThrow(() -> new IllegalStateException(
@@ -145,7 +145,13 @@ public class LiederGamificationService implements UserActionEventHandler {
         }
     }
 
-    private boolean extractSuccess(String contentJson) {
+    private boolean extractSuccess(UserActionEventType eventType, String contentJson) {
+        if (eventType == UserActionEventType.SORTING_REGULARITY_MISSED) {
+            return false;
+        }
+        if (eventType == UserActionEventType.SORTING_REGULARITY_CONFIRMED) {
+            return true;
+        }
         if (contentJson == null || contentJson.isBlank()) {
             return true;
         }
@@ -160,6 +166,9 @@ public class LiederGamificationService implements UserActionEventHandler {
 
     private boolean isSupportedRewardEventType(UserActionEventType eventType) {
         return eventType == UserActionEventType.SEPARATE_CHOSEN
-                || eventType == UserActionEventType.GREEN_SLOT_CHOSEN;
+                || eventType == UserActionEventType.GREEN_SLOT_CHOSEN
+                || eventType == UserActionEventType.ECO_TASK_REWARD_REQUEST
+                || eventType == UserActionEventType.SORTING_REGULARITY_CONFIRMED
+                || eventType == UserActionEventType.SORTING_REGULARITY_MISSED;
     }
 }

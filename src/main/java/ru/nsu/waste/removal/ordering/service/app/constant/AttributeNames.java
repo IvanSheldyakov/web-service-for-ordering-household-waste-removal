@@ -42,6 +42,12 @@ public final class AttributeNames {
 
     public static final String HISTORY = "history";
 
+    public static final String LEADERBOARD = "leaderboard";
+
+    public static final String INFO_CARD = "infoCard";
+
+    public static final String GAMIFICATION = "gamification";
+
     public static final String USER_ID = "userId";
 
     public static final String ORDER_CREATE_FORM = "orderCreateForm";

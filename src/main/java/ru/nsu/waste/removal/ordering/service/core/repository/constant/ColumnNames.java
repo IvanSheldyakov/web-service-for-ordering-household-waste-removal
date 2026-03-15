@@ -80,6 +80,8 @@ public final class ColumnNames {
 
     public static final String ECO_TASK_ID = "eco_task_id";
 
+    public static final String ACHIEVEMENT_ID = "achievement_id";
+
     public static final String POINTS = "points";
 
     public static final String TARGET = "target";

@@ -28,6 +28,14 @@ public class OrderInfoService {
         return orderInfoRepository.countDoneGreenOrders(userId);
     }
 
+    public long countDoneSeparateOrdersCompletedInPeriod(
+            long userId,
+            java.time.OffsetDateTime from,
+            java.time.OffsetDateTime to
+    ) {
+        return orderInfoRepository.countDoneSeparateOrdersCompletedInPeriod(userId, from, to);
+    }
+
     public List<ActiveOrderInfo> findActiveOrders(long userId) {
         return orderInfoRepository.findActiveOrdersByUserId(userId, DEFAULT_ACTIVE_ORDERS_LIMIT);
     }

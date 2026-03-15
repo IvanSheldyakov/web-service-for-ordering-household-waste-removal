@@ -26,6 +26,7 @@ import ru.nsu.waste.removal.ordering.service.core.service.registration.Registrat
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -114,6 +115,60 @@ class RewardPipelineE2ETest {
     }
 
     @Test
+    void processPendingEvents_whenSuccessEventsRepeat_rewardDecreasesAsHabitStrengthGrows() {
+        long userId = registerAchiever("77007770012");
+        addRewardTriggerEvent(userId, UserActionEventType.SEPARATE_CHOSEN, true);
+        addRewardTriggerEvent(userId, UserActionEventType.SEPARATE_CHOSEN, true);
+
+        int processed = userActionEventProcessorService.processPendingEvents();
+        assertEquals(2, processed);
+
+        List<Long> deltas = findPointsDifferencesByType(userId, UserActionEventType.SEPARATE_CHOSEN);
+        assertEquals(2, deltas.size());
+        assertTrue(deltas.getFirst() > deltas.get(1));
+        assertTrue(deltas.get(1) > 0L);
+    }
+
+    @Test
+    void processPendingEvents_whenMissedWindowOccurs_habitStrengthDecreasesAndRewardCanGrowAgain() {
+        long userId = registerAchiever("77007770013");
+        for (int i = 0; i < 8; i++) {
+            addRewardTriggerEvent(userId, UserActionEventType.SORTING_REGULARITY_CONFIRMED, true);
+        }
+        userActionEventProcessorService.processPendingEvents();
+
+        long rewardBeforeMiss = findLatestPointsDifferenceByType(
+                userId,
+                UserActionEventType.SORTING_REGULARITY_CONFIRMED
+        );
+        long habitStrengthBeforeMiss = findHabitStrength(userId);
+
+        for (int i = 0; i < 2; i++) {
+            userActionHistoryRepository.addEvent(new AddEventParams(
+                    userId,
+                    UserActionEventType.SORTING_REGULARITY_MISSED.dbName(),
+                    "{\"success\":false}",
+                    0
+            ));
+        }
+        userActionEventProcessorService.processPendingEvents();
+
+        long missDelta = findLatestPointsDifferenceByType(userId, UserActionEventType.SORTING_REGULARITY_MISSED);
+        long habitStrengthAfterMiss = findHabitStrength(userId);
+        assertTrue(missDelta <= 0L);
+        assertTrue(habitStrengthAfterMiss < habitStrengthBeforeMiss);
+
+        addRewardTriggerEvent(userId, UserActionEventType.SORTING_REGULARITY_CONFIRMED, true);
+        userActionEventProcessorService.processPendingEvents();
+
+        long rewardAfterMiss = findLatestPointsDifferenceByType(
+                userId,
+                UserActionEventType.SORTING_REGULARITY_CONFIRMED
+        );
+        assertTrue(rewardAfterMiss > rewardBeforeMiss);
+    }
+
+    @Test
     void processPendingEvents_whenEcoTaskCompletedEventHasPositiveDelta_appliesPointsViaPipeline() {
         long userId = registerAchiever("77007770003");
         userActionHistoryRepository.addEvent(new AddEventParams(
@@ -181,6 +236,30 @@ class RewardPipelineE2ETest {
                 eventType.dbName()
         );
         return pointsDifference == null ? 0L : pointsDifference;
+    }
+
+    private List<Long> findPointsDifferencesByType(long userId, UserActionEventType eventType) {
+        return jdbcTemplate.query(
+                """
+                        select points_difference
+                        from user_action_history
+                        where user_id = ?
+                          and event_type = ?
+                        order by id asc
+                        """,
+                (rs, rowNum) -> rs.getLong("points_difference"),
+                userId,
+                eventType.dbName()
+        );
+    }
+
+    private long findHabitStrength(long userId) {
+        Long habitStrength = jdbcTemplate.queryForObject(
+                "select habit_strength from user_info where id = ?",
+                Long.class,
+                userId
+        );
+        return habitStrength == null ? 0L : habitStrength;
     }
 
     private long findUserTotalPoints(long userId) {

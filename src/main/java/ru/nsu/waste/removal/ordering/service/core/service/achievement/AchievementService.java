@@ -26,6 +26,7 @@ import ru.nsu.waste.removal.ordering.service.core.service.order.OrderInfoService
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @Order(30)
@@ -52,6 +53,10 @@ public class AchievementService implements UserActionEventHandler {
 
     public List<Achievement> findByUserType(UserType userType) {
         return achievementRepository.findByUserType(userType);
+    }
+
+    public Set<Integer> findUnlockedAchievementIdsByUserId(long userId) {
+        return achievementUserRepository.findUnlockedAchievementIdsByUserId(userId);
     }
 
     @Override

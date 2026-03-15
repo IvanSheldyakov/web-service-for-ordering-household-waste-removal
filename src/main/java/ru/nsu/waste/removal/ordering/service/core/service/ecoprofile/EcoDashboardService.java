@@ -335,7 +335,6 @@ public class EcoDashboardService {
         }
     }
 
-    // TODO: switch dashboard period filtering from created_at to completed_at when completion flow is implemented.
     private OrderFiltersInPeriod buildDoneFilters(BuildDoneFiltersParams params) {
         return new OrderFiltersInPeriod(
                 params.userId(),

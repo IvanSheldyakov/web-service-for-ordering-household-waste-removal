@@ -19,7 +19,6 @@ import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(properties = "app.jobs.user-action-event-processor.enabled=false")
@@ -54,6 +53,7 @@ class UserHistoryServiceE2ETest {
         jdbcTemplate.execute("""
                 truncate table
                     event_processor_state,
+                    sorting_regularity_window,
                     order_waste_fraction,
                     order_info,
                     user_action_history,
@@ -67,7 +67,7 @@ class UserHistoryServiceE2ETest {
     }
 
     @Test
-    void getUserHistory_includesOrderPaidWithPointsWithSpecificDescription() {
+    void getUserHistory_includesOrderPaidWithPointsAndNegativeEventsWithReadableDescriptions() {
         long userId = createUser("75550000001", "100001", 500L, 180L, "Asia/Novosibirsk");
         long paperId = findFractionIdByType("PAPER");
         long glassId = findFractionIdByType("GLASS");
@@ -170,6 +170,35 @@ class UserHistoryServiceE2ETest {
         assertEquals("Выполнено эко-задание", history.items().get(1).description());
     }
 
+    @Test
+    void getUserHistory_includesInfoCardAndRegularityEventsWithReadableDescriptions() {
+        long userId = createUser("75550000003", "100003", 200L, 150L, "UTC");
+
+        addEvent(
+                userId,
+                UserActionEventType.INFO_CARD_VIEWED.dbName(),
+                "{\"cardId\":1,\"title\":\"Сортировка с нуля\"}",
+                0L,
+                OffsetDateTime.parse("2026-03-20T11:00:00+00:00")
+        );
+        addEvent(
+                userId,
+                UserActionEventType.SORTING_REGULARITY_MISSED.dbName(),
+                "{\"success\":false}",
+                -5L,
+                OffsetDateTime.parse("2026-03-20T10:30:00+00:00")
+        );
+
+        UserHistory history = userHistoryService.getUserHistory(userId, 10);
+
+        assertTrue(history.items().stream().anyMatch(
+                item -> item.description().contains("Просмотрена карточка")
+        ));
+        assertTrue(history.items().stream().anyMatch(
+                item -> item.description().equals("Пропущено окно регулярной сортировки")
+        ));
+    }
+
     private long createUser(String phone, String postalCode, long totalPoints, long currentPoints, String timezone) {
         Long personId = jdbcTemplate.queryForObject(
                 """
@@ -255,4 +284,3 @@ class UserHistoryServiceE2ETest {
         }
     }
 }
-

@@ -9,6 +9,7 @@ import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnName
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,6 +24,14 @@ public class InfoCardRepository {
             limit :limit
             """;
 
+    private static final String FIND_BY_ID_QUERY = """
+            select id,
+                   title,
+                   description
+            from info_card
+            where id = :id
+            """;
+
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public List<InfoCard> findRandom(int limit) {
@@ -35,5 +44,17 @@ public class InfoCardRepository {
                         rs.getString(ColumnNames.DESCRIPTION)
                 )
         );
+    }
+
+    public Optional<InfoCard> findById(long cardId) {
+        return namedParameterJdbcTemplate.query(
+                FIND_BY_ID_QUERY,
+                new MapSqlParameterSource(ParameterNames.ID, cardId),
+                (rs, rowNum) -> new InfoCard(
+                        rs.getInt(ColumnNames.ID),
+                        rs.getString(ColumnNames.TITLE),
+                        rs.getString(ColumnNames.DESCRIPTION)
+                )
+        ).stream().findFirst();
     }
 }

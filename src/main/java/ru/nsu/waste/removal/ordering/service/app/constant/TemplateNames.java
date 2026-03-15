@@ -30,5 +30,11 @@ public final class TemplateNames {
 
     public static final String USER_HISTORY = "user_history";
 
+    public static final String USER_LEADERBOARD = "user_leaderboard";
+
+    public static final String USER_INFO_CARD = "user_info_card";
+
+    public static final String USER_GAMIFICATION = "user_gamification";
+
     public static final String ORDER_CREATE = "order_create";
 }

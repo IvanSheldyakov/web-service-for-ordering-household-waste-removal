@@ -27,6 +27,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -95,18 +96,28 @@ class EcoTaskEventProcessingE2ETest {
         int firstProcessed = userActionEventProcessorService.processPendingEvents();
 
         assertEquals(5, firstProcessed);
-        assertEquals("DONE", findEcoTaskStatus(userId, ACHIEVER_TASK_CODE));
+        assertTrue(hasEcoTaskAssignmentStatus(userId, ACHIEVER_TASK_CODE, "DONE"));
         assertEquals(1, countEventsByType(userId, UserActionEventType.ECO_TASK_COMPLETED));
         assertEquals(100L, findLatestEcoTaskCompletedPointsDifference(userId));
         assertEquals(INITIAL_USER_POINTS, findUserTotalPoints(userId));
         assertEquals(INITIAL_USER_POINTS, findUserCurrentPoints(userId));
 
-        int secondProcessed = userActionEventProcessorService.processPendingEvents();
-
+        int secondProcessed = processUntilNoPendingEvents();
         assertTrue(secondProcessed >= 1);
+
         assertEquals(1, countEventsByType(userId, UserActionEventType.ECO_TASK_COMPLETED));
-        assertEquals(INITIAL_USER_POINTS + 100L, findUserTotalPoints(userId));
-        assertEquals(INITIAL_USER_POINTS + 100L, findUserCurrentPoints(userId));
+        assertEquals(1, countEventsByType(userId, UserActionEventType.ECO_TASK_REWARD_REQUEST));
+
+        long ecoTaskBaseDelta = findLatestPointsDifferenceByType(userId, UserActionEventType.ECO_TASK_COMPLETED);
+        long ecoTaskAdaptiveDelta = findLatestPointsDifferenceByType(userId, UserActionEventType.ECO_TASK_REWARD_REQUEST);
+        long regularityAdaptiveDelta = findLatestPointsDifferenceByType(
+                userId,
+                UserActionEventType.SORTING_REGULARITY_CONFIRMED
+        );
+
+        long expectedTotal = INITIAL_USER_POINTS + ecoTaskBaseDelta + ecoTaskAdaptiveDelta + regularityAdaptiveDelta;
+        assertEquals(expectedTotal, findUserTotalPoints(userId));
+        assertEquals(expectedTotal, findUserCurrentPoints(userId));
     }
 
     private void addDoneSeparateOrders(long userId, int count) {
@@ -121,6 +132,7 @@ class EcoTaskEventProcessingE2ETest {
                             insert into order_info(
                                                    user_id,
                                                    created_at,
+                                                   completed_at,
                                                    type,
                                                    status,
                                                    pickup_from,
@@ -130,6 +142,7 @@ class EcoTaskEventProcessingE2ETest {
                                                    cost_points
                                                    )
                             values (
+                                    ?,
                                     ?,
                                     ?,
                                     'SEPARATE',
@@ -143,6 +156,7 @@ class EcoTaskEventProcessingE2ETest {
                             """,
                     userId,
                     createdAt,
+                    createdAt.plusMinutes(30),
                     pickupFrom,
                     pickupTo
             );
@@ -160,21 +174,22 @@ class EcoTaskEventProcessingE2ETest {
         }
     }
 
-    private String findEcoTaskStatus(long userId, String ecoTaskCode) {
-        return jdbcTemplate.queryForObject(
+    private boolean hasEcoTaskAssignmentStatus(long userId, String ecoTaskCode, String status) {
+        Integer count = jdbcTemplate.queryForObject(
                 """
-                        select uet.status
+                        select count(*)
                         from user_eco_task uet
                                  join eco_task et on et.id = uet.eco_task_id
                         where uet.user_id = ?
                           and et.code = ?
-                        order by uet.id desc
-                        limit 1
+                          and uet.status = ?
                         """,
-                String.class,
+                Integer.class,
                 userId,
-                ecoTaskCode
+                ecoTaskCode,
+                status
         );
+        return count != null && count > 0;
     }
 
     private int countEventsByType(long userId, UserActionEventType eventType) {
@@ -188,19 +203,39 @@ class EcoTaskEventProcessingE2ETest {
     }
 
     private long findLatestEcoTaskCompletedPointsDifference(long userId) {
-        Long pointsDifference = jdbcTemplate.queryForObject(
+        return findLatestPointsDifferenceByType(userId, UserActionEventType.ECO_TASK_COMPLETED);
+    }
+
+    private long findLatestPointsDifferenceByType(long userId, UserActionEventType eventType) {
+        List<Long> pointsDifferences = jdbcTemplate.query(
                 """
                         select points_difference
                         from user_action_history
                         where user_id = ?
-                          and event_type = 'ECO_TASK_COMPLETED'
+                          and event_type = ?
                         order by id desc
                         limit 1
                         """,
-                Long.class,
-                userId
+                (rs, rowNum) -> rs.getLong("points_difference"),
+                userId,
+                eventType.dbName()
         );
-        return pointsDifference == null ? 0L : pointsDifference;
+        if (pointsDifferences.isEmpty()) {
+            return 0L;
+        }
+        return pointsDifferences.getFirst();
+    }
+
+    private int processUntilNoPendingEvents() {
+        int totalProcessed = 0;
+        for (int i = 0; i < 10; i++) {
+            int processed = userActionEventProcessorService.processPendingEvents();
+            totalProcessed += processed;
+            if (processed == 0) {
+                break;
+            }
+        }
+        return totalProcessed;
     }
 
     private long findUserTotalPoints(long userId) {

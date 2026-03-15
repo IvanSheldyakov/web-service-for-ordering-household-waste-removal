@@ -13,7 +13,10 @@ public enum UserActionEventType {
     ECO_PROFILE_OPENED,
     INFO_CARD_VIEWED,
     ACHIEVEMENT_UNLOCKED,
-    ECO_TASK_COMPLETED;
+    ECO_TASK_COMPLETED,
+    ECO_TASK_REWARD_REQUEST,
+    SORTING_REGULARITY_CONFIRMED,
+    SORTING_REGULARITY_MISSED;
 
     public String dbName() {
         return name();

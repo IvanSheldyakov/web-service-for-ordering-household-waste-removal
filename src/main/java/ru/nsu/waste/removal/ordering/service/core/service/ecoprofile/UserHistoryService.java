@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.UserHistory;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.UserHistoryItem;
 import ru.nsu.waste.removal.ordering.service.core.model.event.EcoTaskCompletedEventContent;
+import ru.nsu.waste.removal.ordering.service.core.model.event.InfoCardViewedEventContent;
+import ru.nsu.waste.removal.ordering.service.core.model.event.LiederRewardEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.OrderCreatedEventContent;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionEventType;
 import ru.nsu.waste.removal.ordering.service.core.model.event.UserActionHistoryRecord;
@@ -35,6 +37,11 @@ public class UserHistoryService {
     private static final String EVENT_TYPE_SEPARATE_CHOSEN = UserActionEventType.SEPARATE_CHOSEN.dbName();
     private static final String EVENT_TYPE_GREEN_SLOT_CHOSEN = UserActionEventType.GREEN_SLOT_CHOSEN.dbName();
     private static final String EVENT_TYPE_ECO_TASK_COMPLETED = UserActionEventType.ECO_TASK_COMPLETED.dbName();
+    private static final String EVENT_TYPE_INFO_CARD_VIEWED = UserActionEventType.INFO_CARD_VIEWED.dbName();
+    private static final String EVENT_TYPE_LEADERBOARD_OPENED = UserActionEventType.LEADERBOARD_OPENED.dbName();
+    private static final String EVENT_TYPE_ECO_TASK_REWARD_REQUEST = UserActionEventType.ECO_TASK_REWARD_REQUEST.dbName();
+    private static final String EVENT_TYPE_SORTING_REGULARITY_CONFIRMED = UserActionEventType.SORTING_REGULARITY_CONFIRMED.dbName();
+    private static final String EVENT_TYPE_SORTING_REGULARITY_MISSED = UserActionEventType.SORTING_REGULARITY_MISSED.dbName();
     private static final String ORDER_TYPE_SEPARATE = "SEPARATE";
 
     private static final String ORDER_CREATED_FALLBACK = "Оформлен заказ";
@@ -42,6 +49,10 @@ public class UserHistoryService {
     private static final String SEPARATE_CHOSEN_DESCRIPTION = "Начисление за раздельный вывоз";
     private static final String GREEN_SLOT_CHOSEN_DESCRIPTION = "Начисление за выбор зелёного слота";
     private static final String ECO_TASK_COMPLETED_FALLBACK = "Выполнено эко-задание";
+    private static final String INFO_CARD_VIEWED_FALLBACK = "Просмотрена информационная карточка";
+    private static final String LEADERBOARD_OPENED_DESCRIPTION = "Открыта страница рейтинга";
+    private static final String SORTING_REGULARITY_CONFIRMED_DESCRIPTION = "Подтверждена регулярность сортировки";
+    private static final String SORTING_REGULARITY_MISSED_DESCRIPTION = "Пропущено окно регулярной сортировки";
     private static final String POINTS_WITHDRAW_DESCRIPTION = "Списание баллов";
     private static final String DEFAULT_ACTION_DESCRIPTION = "Действие пользователя";
     private static final String UNKNOWN_SLOT_TIME = "слот: —";
@@ -59,7 +70,12 @@ public class UserHistoryService {
             EVENT_TYPE_ORDER_PAID_WITH_POINTS,
             EVENT_TYPE_SEPARATE_CHOSEN,
             EVENT_TYPE_GREEN_SLOT_CHOSEN,
-            EVENT_TYPE_ECO_TASK_COMPLETED
+            EVENT_TYPE_ECO_TASK_COMPLETED,
+            EVENT_TYPE_INFO_CARD_VIEWED,
+            EVENT_TYPE_LEADERBOARD_OPENED,
+            EVENT_TYPE_ECO_TASK_REWARD_REQUEST,
+            EVENT_TYPE_SORTING_REGULARITY_CONFIRMED,
+            EVENT_TYPE_SORTING_REGULARITY_MISSED
     );
 
     private final UserActionHistoryRepository userActionHistoryRepository;
@@ -148,9 +164,6 @@ public class UserHistoryService {
         if (EVENT_TYPE_ORDER_PAID_WITH_POINTS.equals(eventType)) {
             return buildOrderPaidWithPointsDescription(event.pointsDifference());
         }
-        if (event.pointsDifference() < 0L) {
-            return POINTS_WITHDRAW_DESCRIPTION;
-        }
         if (EVENT_TYPE_ORDER_CREATED.equals(eventType)) {
             return buildOrderCreatedDescription(event.content(), userZoneId);
         }
@@ -162,6 +175,24 @@ public class UserHistoryService {
         }
         if (EVENT_TYPE_ECO_TASK_COMPLETED.equals(eventType)) {
             return buildEcoTaskCompletedDescription(event.content());
+        }
+        if (EVENT_TYPE_INFO_CARD_VIEWED.equals(eventType)) {
+            return buildInfoCardViewedDescription(event.content());
+        }
+        if (EVENT_TYPE_LEADERBOARD_OPENED.equals(eventType)) {
+            return LEADERBOARD_OPENED_DESCRIPTION;
+        }
+        if (EVENT_TYPE_SORTING_REGULARITY_CONFIRMED.equals(eventType)) {
+            return SORTING_REGULARITY_CONFIRMED_DESCRIPTION;
+        }
+        if (EVENT_TYPE_SORTING_REGULARITY_MISSED.equals(eventType)) {
+            return SORTING_REGULARITY_MISSED_DESCRIPTION;
+        }
+        if (EVENT_TYPE_ECO_TASK_REWARD_REQUEST.equals(eventType)) {
+            return buildAdaptiveRewardDescription(event.content(), "Адаптивная награда за эко-задание");
+        }
+        if (event.pointsDifference() < 0L) {
+            return POINTS_WITHDRAW_DESCRIPTION;
         }
         return DEFAULT_ACTION_DESCRIPTION;
     }
@@ -198,6 +229,31 @@ public class UserHistoryService {
         }
 
         return "Выполнено эко-задание (+" + content.rewardPoints() + ")";
+    }
+
+    private String buildInfoCardViewedDescription(String contentJson) {
+        InfoCardViewedEventContent content = tryRead(contentJson, InfoCardViewedEventContent.class);
+        if (content == null || content.title() == null || content.title().isBlank()) {
+            return INFO_CARD_VIEWED_FALLBACK;
+        }
+
+        return "Просмотрена карточка: " + content.title();
+    }
+
+    private String buildAdaptiveRewardDescription(String contentJson, String prefix) {
+        LiederRewardEventContent content = tryRead(contentJson, LiederRewardEventContent.class);
+        if (content == null) {
+            return prefix;
+        }
+
+        long applied = content.appliedPoints();
+        if (applied > 0L) {
+            return prefix + " (+" + applied + ")";
+        }
+        if (applied < 0L) {
+            return prefix + " (" + applied + ")";
+        }
+        return prefix + " (0)";
     }
 
     private String resolveFractionNames(List<Long> fractionIds) {
@@ -261,4 +317,3 @@ public class UserHistoryService {
         }
     }
 }
-

@@ -10,6 +10,7 @@ import ru.nsu.waste.removal.ordering.service.app.constant.AttributeNames;
 import ru.nsu.waste.removal.ordering.service.app.constant.Paths;
 import ru.nsu.waste.removal.ordering.service.app.constant.TemplateNames;
 import ru.nsu.waste.removal.ordering.service.core.model.ecoprofile.EcoDashboardPeriod;
+import ru.nsu.waste.removal.ordering.service.core.model.user.LeaderboardPeriod;
 import ru.nsu.waste.removal.ordering.service.core.facade.UserFacade;
 
 @Controller
@@ -44,5 +45,35 @@ public class UserController {
         model.addAttribute(AttributeNames.HISTORY, userFacade.getHistory(userId));
         model.addAttribute(AttributeNames.USER_ID, userId);
         return TemplateNames.USER_HISTORY;
+    }
+
+    @GetMapping(Paths.USER_LEADERBOARD)
+    public String getUserLeaderboard(
+            @PathVariable(Paths.USER_ID) long userId,
+            @RequestParam(name = "period", required = false) String period,
+            Model model
+    ) {
+        LeaderboardPeriod selectedPeriod = LeaderboardPeriod.fromQuery(period);
+        model.addAttribute(AttributeNames.LEADERBOARD, userFacade.getLeaderboard(userId, selectedPeriod));
+        model.addAttribute(AttributeNames.USER_ID, userId);
+        return TemplateNames.USER_LEADERBOARD;
+    }
+
+    @GetMapping(Paths.USER_INFO_CARD)
+    public String getInfoCard(
+            @PathVariable(Paths.USER_ID) long userId,
+            @PathVariable(Paths.CARD_ID) long cardId,
+            Model model
+    ) {
+        model.addAttribute(AttributeNames.INFO_CARD, userFacade.getInfoCard(userId, cardId));
+        model.addAttribute(AttributeNames.USER_ID, userId);
+        return TemplateNames.USER_INFO_CARD;
+    }
+
+    @GetMapping(Paths.USER_GAMIFICATION)
+    public String getGamification(@PathVariable(Paths.USER_ID) long userId, Model model) {
+        model.addAttribute(AttributeNames.GAMIFICATION, userFacade.getGamification(userId));
+        model.addAttribute(AttributeNames.USER_ID, userId);
+        return TemplateNames.USER_GAMIFICATION;
     }
 }

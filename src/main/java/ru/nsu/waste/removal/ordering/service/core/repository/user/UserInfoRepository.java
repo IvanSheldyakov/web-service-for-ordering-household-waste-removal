@@ -102,6 +102,15 @@ public class UserInfoRepository {
             where ui.id = :userId
             """;
 
+    private static final String FIND_ALL_GREEN_SLOT_CONTEXTS_QUERY = """
+            select ui.id,
+                   a.postal_code,
+                   a.timezone
+            from user_info ui
+                     join address a on a.id = ui.address_id
+            order by ui.id asc
+            """;
+
     private static final String FIND_USER_ID_BY_PHONE_QUERY = """
             select ui.id
             from user_info ui
@@ -232,6 +241,17 @@ public class UserInfoRepository {
                         rs.getString(ColumnNames.TIMEZONE)
                 )
         ).stream().findFirst();
+    }
+
+    public List<UserGreenSlotContext> findAllGreenSlotContexts() {
+        return namedParameterJdbcTemplate.query(
+                FIND_ALL_GREEN_SLOT_CONTEXTS_QUERY,
+                (rs, rowNum) -> new UserGreenSlotContext(
+                        rs.getLong(ColumnNames.ID),
+                        rs.getString(ColumnNames.POSTAL_CODE),
+                        rs.getString(ColumnNames.TIMEZONE)
+                )
+        );
     }
 
     public Optional<Long> findUserIdByPhone(long phone) {
