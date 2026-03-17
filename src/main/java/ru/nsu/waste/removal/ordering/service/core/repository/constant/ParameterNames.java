@@ -20,6 +20,8 @@ public final class ParameterNames {
 
     public static final String EMAIL = "email";
 
+    public static final String PASSWORD_HASH = "passwordHash";
+
     public static final String NAME = "name";
 
     public static final String SURNAME = "surname";

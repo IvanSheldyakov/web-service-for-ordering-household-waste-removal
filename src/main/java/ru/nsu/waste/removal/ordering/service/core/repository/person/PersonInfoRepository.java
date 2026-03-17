@@ -4,8 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.nsu.waste.removal.ordering.service.core.repository.constant.ColumnNames;
 import ru.nsu.waste.removal.ordering.service.core.repository.constant.ParameterNames;
 import ru.nsu.waste.removal.ordering.service.core.model.person.PersonCreationData;
+
+import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
@@ -23,17 +26,25 @@ public class PersonInfoRepository {
             insert into person_info(
                                     phone,
                                     email,
+                                    password_hash,
                                     name,
                                     surname,
                                     patronymic
                                     )
             values (:phone,
                     :email,
+                    :passwordHash,
                     :name,
                     :surname,
                     :patronymic
                     )
             returning id
+            """;
+
+    private static final String FIND_PASSWORD_HASH_BY_PHONE_QUERY = """
+            select password_hash
+            from person_info
+            where phone = :phone
             """;
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
@@ -51,6 +62,7 @@ public class PersonInfoRepository {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue(ParameterNames.PHONE, personCreationData.phone())
                 .addValue(ParameterNames.EMAIL, personCreationData.email())
+                .addValue(ParameterNames.PASSWORD_HASH, personCreationData.password())
                 .addValue(ParameterNames.NAME, personCreationData.name())
                 .addValue(ParameterNames.SURNAME, personCreationData.surname())
                 .addValue(ParameterNames.PATRONYMIC, personCreationData.patronymic());
@@ -63,5 +75,13 @@ public class PersonInfoRepository {
         }
 
         return id;
+    }
+
+    public Optional<String> findPasswordHashByPhone(long phone) {
+        return namedParameterJdbcTemplate.query(
+                FIND_PASSWORD_HASH_BY_PHONE_QUERY,
+                new MapSqlParameterSource(ParameterNames.PHONE, phone),
+                (rs, rowNum) -> rs.getString(ColumnNames.PASSWORD_HASH)
+        ).stream().findFirst();
     }
 }

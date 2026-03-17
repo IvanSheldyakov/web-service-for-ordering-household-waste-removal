@@ -22,8 +22,6 @@ public final class TemplateNames {
 
     public static final String REGISTRATION_QUIZ = "registration_quiz";
 
-    public static final String REGISTER_SUCCESS = "register_success";
-
     public static final String USER_HOME = "user_home";
 
     public static final String ECO_DASHBOARD = "eco_dashboard";

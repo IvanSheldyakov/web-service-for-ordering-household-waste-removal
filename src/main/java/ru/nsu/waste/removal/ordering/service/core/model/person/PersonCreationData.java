@@ -5,7 +5,7 @@ public record PersonCreationData(
         String email,
         String name,
         String surname,
-        String patronymic
+        String patronymic,
+        String password
 ) {
 }
-

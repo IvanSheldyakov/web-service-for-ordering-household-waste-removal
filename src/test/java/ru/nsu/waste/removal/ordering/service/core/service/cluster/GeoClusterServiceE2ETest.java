@@ -169,6 +169,7 @@ class GeoClusterServiceE2ETest {
         RegistrationForm form = new RegistrationForm();
         form.setPhone(phone);
         form.setEmail(phone + "@example.com");
+        form.setPassword("secret123");
         form.setName("Ivan");
         form.setSurname("Petrov");
         form.setPatronymic("Sergeevich");

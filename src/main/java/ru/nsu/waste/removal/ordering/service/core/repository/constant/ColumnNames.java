@@ -38,6 +38,8 @@ public final class ColumnNames {
 
     public static final String EMAIL = "email";
 
+    public static final String PASSWORD_HASH = "password_hash";
+
     public static final String SURNAME = "surname";
 
     public static final String PATRONYMIC = "patronymic";

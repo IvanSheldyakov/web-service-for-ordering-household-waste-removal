@@ -15,4 +15,7 @@ public class CourierLoginForm {
             message = "Телефон должен содержать 10-15 цифр"
     )
     private String phone;
+
+    @NotBlank(message = "Пароль обязателен")
+    private String password;
 }

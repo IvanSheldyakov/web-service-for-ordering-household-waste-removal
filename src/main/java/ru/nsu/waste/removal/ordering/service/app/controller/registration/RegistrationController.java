@@ -11,17 +11,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
-import org.springframework.web.servlet.ModelAndView;
 import ru.nsu.waste.removal.ordering.service.app.constant.AttributeNames;
 import ru.nsu.waste.removal.ordering.service.app.constant.Paths;
 import ru.nsu.waste.removal.ordering.service.app.constant.TemplateNames;
 import ru.nsu.waste.removal.ordering.service.app.view.RegistrationQuizViewModel;
-import ru.nsu.waste.removal.ordering.service.app.view.RegistrationResultViewModel;
 import ru.nsu.waste.removal.ordering.service.app.form.QuizAnswerForm;
 import ru.nsu.waste.removal.ordering.service.app.form.RegistrationForm;
 import ru.nsu.waste.removal.ordering.service.core.facade.RegistrationFacade;
-
-import java.util.Map;
 
 @Controller
 @RequestMapping(Paths.REGISTRATION)
@@ -78,17 +74,16 @@ public class RegistrationController {
     }
 
     @PostMapping(Paths.QUIZ)
-    public ModelAndView submitQuiz(
+    public String submitQuiz(
             @ModelAttribute(AttributeNames.REGISTRATION_FORM) RegistrationForm form,
             @ModelAttribute(AttributeNames.QUIZ_ANSWER_FORM) QuizAnswerForm quizAnswerForm,
             SessionStatus sessionStatus
     ) {
         if (!registrationFacade.isRegistrationReadyForQuiz(form)) {
-            return new ModelAndView(redirect(Paths.REGISTRATION));
+            return redirect(Paths.REGISTRATION);
         }
-        RegistrationResultViewModel result =
-                registrationFacade.registerAndCompleteSession(form, quizAnswerForm, sessionStatus);
-        return new ModelAndView(TemplateNames.REGISTER_SUCCESS, Map.of(AttributeNames.RESULT, result));
+        long userId = registrationFacade.registerAndCompleteSession(form, quizAnswerForm, sessionStatus).userId();
+        return redirect(Paths.USER + "/" + userId + Paths.HOME);
     }
 
     private String redirect(String path) {

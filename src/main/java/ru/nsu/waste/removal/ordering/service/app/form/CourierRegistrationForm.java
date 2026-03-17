@@ -22,6 +22,10 @@ public class CourierRegistrationForm {
     @Email(message = "Некорректная электронная почта")
     private String email;
 
+    @NotBlank(message = "Пароль обязателен")
+    @Size(min = 6, max = 128, message = "Пароль должен содержать 6-128 символов")
+    private String password;
+
     @NotBlank(message = "Имя обязательно")
     @Size(max = 256, message = "Имя слишком длинное")
     private String name;
