@@ -127,6 +127,7 @@ class CourierRegistrationServiceE2ETest {
 
         CourierLoginForm successForm = new CourierLoginForm();
         successForm.setPhone("79002223344");
+        successForm.setPassword("secret123");
         BindingResult successBinding = new BeanPropertyBindingResult(
                 successForm,
                 AttributeNames.COURIER_LOGIN_FORM
@@ -139,6 +140,7 @@ class CourierRegistrationServiceE2ETest {
 
         CourierLoginForm errorForm = new CourierLoginForm();
         errorForm.setPhone("79009998877");
+        errorForm.setPassword("secret123");
         BindingResult errorBinding = new BeanPropertyBindingResult(
                 errorForm,
                 AttributeNames.COURIER_LOGIN_FORM
@@ -154,6 +156,7 @@ class CourierRegistrationServiceE2ETest {
         CourierRegistrationForm form = new CourierRegistrationForm();
         form.setPhone(phone);
         form.setEmail(phone + "@courier.test");
+        form.setPassword("secret123");
         form.setName("Иван");
         form.setSurname("Петров");
         form.setPatronymic("Игоревич");

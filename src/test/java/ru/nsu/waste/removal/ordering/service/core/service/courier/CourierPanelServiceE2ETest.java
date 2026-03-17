@@ -332,6 +332,7 @@ class CourierPanelServiceE2ETest {
         CourierRegistrationForm form = new CourierRegistrationForm();
         form.setPhone(phone);
         form.setEmail(phone + "@courier.test");
+        form.setPassword("secret123");
         form.setName("Иван");
         form.setSurname("Курьеров");
         form.setPatronymic("Андреевич");

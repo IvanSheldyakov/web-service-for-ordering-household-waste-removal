@@ -11,13 +11,18 @@
 <main class="app-shell">
     <section class="card">
         <h2>Вход курьера</h2>
-        <p class="hint">Вход по номеру телефона.</p>
+        <p class="hint">Вход по телефону и паролю.</p>
 
         <form th:action="@{/courier/login}" th:object="${courierLoginForm}" method="post">
             <div class="form-grid">
                 <label>Телефон*
                     <input type="text" th:field="*{phone}" placeholder="79001234567">
                     <span class="error" th:errors="*{phone}"></span>
+                </label>
+
+                <label>Пароль*
+                    <input type="password" th:field="*{password}" placeholder="Введите пароль">
+                    <span class="error" th:errors="*{password}"></span>
                 </label>
             </div>
             <button type="submit">Войти в панель курьера</button>

@@ -25,6 +25,11 @@
                     <span class="error" th:errors="*{email}"></span>
                 </label>
 
+                <label>Пароль*
+                    <input type="password" th:field="*{password}" placeholder="Минимум 6 символов">
+                    <span class="error" th:errors="*{password}"></span>
+                </label>
+
                 <label>Имя*
                     <input type="text" th:field="*{name}">
                     <span class="error" th:errors="*{name}"></span>

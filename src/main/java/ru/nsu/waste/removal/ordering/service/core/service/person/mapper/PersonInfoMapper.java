@@ -15,6 +15,7 @@ public interface PersonInfoMapper {
     @Mapping(target = "name", source = "name", qualifiedByName = "trim")
     @Mapping(target = "surname", source = "surname", qualifiedByName = "trim")
     @Mapping(target = "patronymic", source = "patronymic", qualifiedByName = "trimToNull")
+    @Mapping(target = "password", source = "password", qualifiedByName = "trim")
     PersonCreationData toPersonCreationData(RegistrationForm form);
 
     @Mapping(target = "phone", source = "phone", qualifiedByName = "trimToLong")
@@ -22,6 +23,7 @@ public interface PersonInfoMapper {
     @Mapping(target = "name", source = "name", qualifiedByName = "trim")
     @Mapping(target = "surname", source = "surname", qualifiedByName = "trim")
     @Mapping(target = "patronymic", source = "patronymic", qualifiedByName = "trimToNull")
+    @Mapping(target = "password", source = "password", qualifiedByName = "trim")
     PersonCreationData toPersonCreationData(CourierRegistrationForm form);
 
     @Named("trimToLong")

@@ -22,11 +22,13 @@ import java.util.List;
 public class CourierRegistrationFacade {
 
     private static final String PHONE_FIELD = "phone";
+    private static final String PASSWORD_FIELD = "password";
     private static final String TIMEZONE_FIELD = "timezone";
 
     private static final String PHONE_ALREADY_REGISTERED = "Телефон уже зарегистрирован";
     private static final String TIMEZONE_INVALID = "Выберите часовой пояс из списка";
     private static final String COURIER_NOT_FOUND = "Курьер с таким телефоном не найден";
+    private static final String INVALID_PASSWORD = "Неверный пароль";
 
     private final CourierRegistrationService courierRegistrationService;
     private final CourierInfoService courierInfoService;
@@ -55,16 +57,32 @@ public class CourierRegistrationFacade {
     }
 
     public Long login(CourierLoginForm form, BindingResult bindingResult) {
-        if (bindingResult.hasFieldErrors(PHONE_FIELD)) {
+        if (bindingResult.hasFieldErrors(PHONE_FIELD) || bindingResult.hasFieldErrors(PASSWORD_FIELD)) {
             return null;
         }
 
+        long courierId;
         try {
-            return courierInfoService.findCourierIdByPhone(form.getPhone());
+            courierId = courierInfoService.findCourierIdByPhone(form.getPhone());
         } catch (IllegalStateException | NumberFormatException exception) {
             bindingResult.rejectValue(PHONE_FIELD, "courier.phone.notFound", COURIER_NOT_FOUND);
             return null;
         }
+
+        boolean passwordValid;
+        try {
+            passwordValid = personInfoService.isPasswordValid(form.getPhone(), form.getPassword());
+        } catch (NumberFormatException exception) {
+            bindingResult.rejectValue(PHONE_FIELD, "courier.phone.notFound", COURIER_NOT_FOUND);
+            return null;
+        }
+
+        if (!passwordValid) {
+            bindingResult.rejectValue(PASSWORD_FIELD, "courier.password.invalid", INVALID_PASSWORD);
+            return null;
+        }
+
+        return courierId;
     }
 
     private void validateTimezone(CourierRegistrationForm form, BindingResult bindingResult) {

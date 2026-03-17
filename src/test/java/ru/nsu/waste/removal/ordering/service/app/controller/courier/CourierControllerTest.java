@@ -47,7 +47,10 @@ class CourierControllerTest {
         String view = courierController.takeOrderGroup(courierId, form, redirectAttributes);
 
         assertEquals("redirect:/courier/77/home", view);
-        assertEquals("Р’ СЂР°Р±РѕС‚Сѓ РІР·СЏС‚Рѕ 2 Р·Р°РєР°Р·РѕРІ", redirectAttributes.getFlashAttributes().get(AttributeNames.SUCCESS_MESSAGE));
+        assertEquals(
+                "В работу взято 2 заказов",
+                redirectAttributes.getFlashAttributes().get(AttributeNames.SUCCESS_MESSAGE)
+        );
         verify(courierFacade).takeOrderGroup(courierId, form);
     }
 
@@ -62,7 +65,7 @@ class CourierControllerTest {
 
         assertEquals("redirect:/courier/77/home", view);
         assertEquals(
-                "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ РґР°РЅРЅС‹Рµ РіСЂСѓРїРїС‹ Р·Р°РєР°Р·РѕРІ",
+                "Некорректные данные группы заказов",
                 redirectAttributes.getFlashAttributes().get(AttributeNames.ERROR_MESSAGE)
         );
         verifyNoInteractions(courierFacade);

@@ -1,7 +1,14 @@
 package ru.nsu.waste.removal.ordering.service.app.controller.user;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +29,7 @@ public class UserAuthController {
     private static final String REDIRECT_PREFIX = "redirect:";
 
     private final UserAuthFacade userAuthFacade;
+    private final SecurityContextRepository securityContextRepository;
 
     @ModelAttribute(AttributeNames.USER_LOGIN_FORM)
     public UserLoginForm userLoginForm() {
@@ -36,7 +44,9 @@ public class UserAuthController {
     @PostMapping
     public String login(
             @Valid @ModelAttribute(AttributeNames.USER_LOGIN_FORM) UserLoginForm form,
-            BindingResult bindingResult
+            BindingResult bindingResult,
+            HttpServletRequest request,
+            HttpServletResponse response
     ) {
         if (bindingResult.hasErrors()) {
             return TemplateNames.USER_LOGIN;
@@ -46,6 +56,15 @@ public class UserAuthController {
         if (userId == null) {
             return TemplateNames.USER_LOGIN;
         }
+
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                form.getPhone().trim(),
+                null,
+                AuthorityUtils.createAuthorityList("ROLE_USER")
+        ));
+        SecurityContextHolder.setContext(securityContext);
+        securityContextRepository.saveContext(securityContext, request, response);
 
         return REDIRECT_PREFIX + Paths.USER + "/" + userId + Paths.HOME;
     }

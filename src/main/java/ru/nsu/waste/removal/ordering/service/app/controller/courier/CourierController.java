@@ -38,13 +38,13 @@ public class CourierController {
             RedirectAttributes redirectAttributes
     ) {
         if (hasValidationErrors(form)) {
-            redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ РґР°РЅРЅС‹Рµ Р·Р°РєР°Р·Р°");
+            redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, "Некорректные данные заказа");
             return redirectToPanel(courierId);
         }
 
         try {
             courierFacade.takeOrder(courierId, form);
-            redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, "Р—Р°РєР°Р· СѓСЃРїРµС€РЅРѕ РІР·СЏС‚ РІ СЂР°Р±РѕС‚Сѓ");
+            redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, "Заказ успешно взят в работу");
         } catch (IllegalStateException exception) {
             redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, exception.getMessage());
         }
@@ -61,7 +61,7 @@ public class CourierController {
         if (hasValidationErrors(form)) {
             redirectAttributes.addFlashAttribute(
                     AttributeNames.ERROR_MESSAGE,
-                    "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ РґР°РЅРЅС‹Рµ РіСЂСѓРїРїС‹ Р·Р°РєР°Р·РѕРІ"
+                    "Некорректные данные группы заказов"
             );
             return redirectToPanel(courierId);
         }
@@ -69,8 +69,8 @@ public class CourierController {
         try {
             courierFacade.takeOrderGroup(courierId, form);
             String successMessage = form.getExpectedOrderCount() != null && form.getExpectedOrderCount() > 1
-                    ? "Р’ СЂР°Р±РѕС‚Сѓ РІР·СЏС‚Рѕ %s Р·Р°РєР°Р·РѕРІ".formatted(form.getExpectedOrderCount())
-                    : "Р—Р°РєР°Р· СѓСЃРїРµС€РЅРѕ РІР·СЏС‚ РІ СЂР°Р±РѕС‚Сѓ";
+                    ? "В работу взято %s заказов".formatted(form.getExpectedOrderCount())
+                    : "Заказ успешно взят в работу";
             redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, successMessage);
         } catch (IllegalStateException exception) {
             redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, exception.getMessage());
@@ -86,13 +86,13 @@ public class CourierController {
             RedirectAttributes redirectAttributes
     ) {
         if (hasValidationErrors(form)) {
-            redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, "РќРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ РґР°РЅРЅС‹Рµ Р·Р°РєР°Р·Р°");
+            redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, "Некорректные данные заказа");
             return redirectToPanel(courierId);
         }
 
         try {
             courierFacade.completeOrder(courierId, form);
-            redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, "Р—Р°РєР°Р· РѕС‚РјРµС‡РµРЅ РєР°Рє РІС‹РїРѕР»РЅРµРЅРЅС‹Р№");
+            redirectAttributes.addFlashAttribute(AttributeNames.SUCCESS_MESSAGE, "Заказ отмечен как выполненный");
         } catch (IllegalStateException exception) {
             redirectAttributes.addFlashAttribute(AttributeNames.ERROR_MESSAGE, exception.getMessage());
         }

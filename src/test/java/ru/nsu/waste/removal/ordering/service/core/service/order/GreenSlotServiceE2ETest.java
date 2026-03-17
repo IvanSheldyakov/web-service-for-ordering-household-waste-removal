@@ -199,6 +199,7 @@ class GreenSlotServiceE2ETest {
         RegistrationForm form = new RegistrationForm();
         form.setPhone(phone);
         form.setEmail("user@example.com");
+        form.setPassword("secret123");
         form.setName("Ivan");
         form.setSurname("Petrov");
         form.setPatronymic("Sergeevich");
